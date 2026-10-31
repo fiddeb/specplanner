@@ -1,0 +1,20 @@
+{
+  "name": "specplanner-local",
+  "plugins": [
+    {
+      "name": "specplanner",
+      "source": {
+        "source": "local",
+        "path": "./releases/specplanner-0.1.8"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ],
+  "interface": {
+    "displayName": "SpecPlanner local development"
+  }
+}

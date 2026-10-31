@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.specplanner/
+.env
+.env.*
+!.env.example
+.DS_Store
+releases/

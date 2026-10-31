@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "specplanner",
+  "version": "0.1.8",
+  "description": "Plan and review software changes with OpenSpec and a shared drawing board.",
+  "extensions": {
+    "com.openai": {
+      "requires_local_executor": true
+    }
+  }
+}
