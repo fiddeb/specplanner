@@ -3,11 +3,15 @@ import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export function changeId(value: string) {
   if (value.length > 100 || !idPattern.test(value) || value === "archive") throw new Error("Use a lowercase change name with single hyphens.");
+  return value;
+}
+export function archivedChangeName(value: string) {
+  if (value.length > 111 || !idPattern.test(value) || value === "archive") throw new Error("Invalid archived change name.");
   return value;
 }
 export class OpenSpecWorkspace {
@@ -25,6 +29,7 @@ export class OpenSpecWorkspace {
     const visit = async (path: string): Promise<void> => {
       const stat = await lstat(path);
       if (stat.isSymbolicLink()) throw new Error("Symlinks are not supported inside this workspace's openspec directory.");
+      if (!stat.isDirectory() && !stat.isFile()) throw new Error("Only regular OpenSpec files and directories are supported.");
       if (++count > 10000) throw new Error("OpenSpec tree is too large.");
       if (stat.isDirectory()) for (const child of await readdir(path)) await visit(join(path, child));
     };
@@ -92,6 +97,26 @@ export class OpenSpecWorkspace {
     const official = await this.command(["instructions", artifact, "--change", changeId(id), "--json"]);
     if (!official || typeof official !== "object" || Array.isArray(official)) throw new Error("Unexpected OpenSpec instruction format.");
     return { ...official, specplannerWritingPolicy: writingPolicy };
+  }
+  async taskStatus(id: string) {
+    changeId(id);
+    const root = await this.checkTree();
+    // Pinned official parser, loaded from the shipped CLI layout (also present in releases).
+    const tasks = await import(new URL("../dist/utils/task-progress.js", pathToFileURL(this.cli)).href) as {
+      getTaskProgressDetailForChange: (directory: string, id: string, root: string) => Promise<{ total: number; completed: number; unreadable: string[] }>;
+      resolveTaskFilesForChange: (directory: string, root: string) => string[];
+      parseTaskLines: (content: string) => { done: boolean; description: string }[];
+    };
+    const directory = join(root, "openspec", "changes", id);
+    const progress = await tasks.getTaskProgressDetailForChange(join(root, "openspec", "changes"), id, root);
+    const files = tasks.resolveTaskFilesForChange(directory, root);
+    const pending: { path: string; description: string }[] = [];
+    for (const file of files.length ? files : [join(directory, "tasks.md")]) {
+      let content: string;
+      try { content = await readFile(file, "utf8"); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; throw error; }
+      pending.push(...tasks.parseTaskLines(content).filter(task => !task.done).map(task => ({ path: file.slice(directory.length + 1), description: task.description })));
+    }
+    return { ...progress, status: progress.unreadable.length ? "unknown" : progress.total === 0 ? "unknown" : progress.completed === progress.total ? "complete" : "incomplete", pending };
   }
   async read(id: string) {
     const root = await this.checkTree();

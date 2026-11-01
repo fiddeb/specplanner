@@ -1,0 +1,104 @@
+{
+  "mode": "before",
+  "baseline": "installed 0.1.8 server (read-only)",
+  "fixture": {
+    "activeChanges": 30,
+    "newCapabilities": 24,
+    "archivedDocuments": 60
+  },
+  "discoveryBytes": 14876,
+  "rows": [
+    {
+      "phase": "orientation",
+      "tool": "workspace_info",
+      "bytes": 11252,
+      "textBytes": 5906
+    },
+    {
+      "phase": "selected change",
+      "tool": "read_change",
+      "bytes": 17542,
+      "textBytes": 8808
+    },
+    {
+      "phase": "selected change",
+      "tool": "read_document",
+      "bytes": 4263,
+      "textBytes": 2136
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 11252,
+      "textBytes": 5906
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 4263,
+      "textBytes": 2136
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 11252,
+      "textBytes": 5906
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 4263,
+      "textBytes": 2136
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 11252,
+      "textBytes": 5906
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 4263,
+      "textBytes": 2136
+    },
+    {
+      "phase": "archive inputs (preview unavailable)",
+      "tool": "workspace_info",
+      "bytes": 11252,
+      "textBytes": 5906
+    },
+    {
+      "phase": "archive inputs (preview unavailable)",
+      "tool": "read_change",
+      "bytes": 17542,
+      "textBytes": 8808
+    },
+    {
+      "phase": "archive inputs (preview unavailable)",
+      "tool": "validate_change",
+      "bytes": 809,
+      "textBytes": 421
+    }
+  ],
+  "calls": 12,
+  "totalBytes": 109205,
+  "instructions": {
+    "calls": 2,
+    "totalBytes": 34834,
+    "rows": [
+      {
+        "phase": "drafting instructions (separate)",
+        "tool": "planning_instructions",
+        "bytes": 17417,
+        "textBytes": 8797
+      },
+      {
+        "phase": "drafting instructions (separate)",
+        "tool": "planning_instructions",
+        "bytes": 17417,
+        "textBytes": 8797
+      }
+    ]
+  }
+}

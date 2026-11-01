@@ -5,7 +5,7 @@
       "name": "specplanner",
       "source": {
         "source": "local",
-        "path": "./releases/specplanner-0.1.8"
+        "path": "./releases/specplanner-0.2.0"
       },
       "policy": {
         "installation": "AVAILABLE",

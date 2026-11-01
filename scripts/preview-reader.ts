@@ -44,8 +44,12 @@ import "./src/panel.css";
 const content = ${JSON.stringify(sample)};
 const app = { sendMessage: async()=>({}), callServerTool: async ({name, arguments:args}) => {
   let data;
-  if(name === "workspace_info") data = {configured:true,name:"Reader preview",changes:["reliable-task-execution"],documents:[{path:"README.md",category:"project"}]};
-  if(name === "read_change") data = {result:{id:args.id,documents:[{path:"proposal.md",content},{path:"tasks.md",content:"# Tasks\\n\\n- [ ] Confirm retry permissions"}]}};
+  const page = items => ({items,total:items.length,hasMore:false,nextCursor:null,revision:"fixture"});
+  if(name === "workspace_info") data = {configured:true,name:"Reader preview",activeChanges:1};
+  if(name === "list_changes") data = {result:page(["reliable-task-execution"])};
+  if(name === "list_project_documents") data = {result:page(args.category === "project" ? [{path:"README.md",category:"project"}] : [])};
+  if(name === "change_status") data = {result:{planning:{status:"incomplete"},tasks:{status:"incomplete",total:2,completed:1},implementation:{status:"unknown"},archived:false}};
+  if(name === "read_change") data = {result:{id:args.id,documents:page([{path:"proposal.md"},{path:"tasks.md"}])}};
   if(name === "read_project_document") data = {result:{path:args.path,content}};
   if(name === "read_document") data = {result:{path:args.path,content:args.path === "tasks.md" ? "# Tasks\\n\\n- [ ] Confirm retry permissions" : content,revision:"fixture",comments:[]}};
   if(name === "save_document") data = {result:{path:args.path,content:args.content,revision:"fixture-saved",comments:[]}};

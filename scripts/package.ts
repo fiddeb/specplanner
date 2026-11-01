@@ -14,6 +14,7 @@ try {
   for (const name of ["plugin.json", "mcp.json", "README.md"]) {
     await cp(new URL(name, root), join(staging, name));
   }
+  await cp(new URL("docs/", root), join(staging, "docs"), { recursive: true });
   await mkdir(join(staging, "dist"));
   for (const name of ["server.js", "panel.html"]) {
     await cp(new URL(`dist/${name}`, root), join(staging, "dist", name));

@@ -1,0 +1,128 @@
+{
+  "mode": "after",
+  "baseline": "0.2.0 source server",
+  "fixture": {
+    "activeChanges": 30,
+    "newCapabilities": 24,
+    "archivedDocuments": 60
+  },
+  "discoveryBytes": 20953,
+  "rows": [
+    {
+      "phase": "orientation",
+      "tool": "workspace_info",
+      "bytes": 477,
+      "textBytes": 66
+    },
+    {
+      "phase": "orientation",
+      "tool": "list_changes",
+      "bytes": 599,
+      "textBytes": 62
+    },
+    {
+      "phase": "selected change",
+      "tool": "read_change",
+      "bytes": 1289,
+      "textBytes": 62
+    },
+    {
+      "phase": "selected change",
+      "tool": "read_document",
+      "bytes": 2606,
+      "textBytes": 62
+    },
+    {
+      "phase": "selected change",
+      "tool": "read_change_file",
+      "bytes": 2534,
+      "textBytes": 62
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 477,
+      "textBytes": 66
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 609,
+      "textBytes": 62
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 477,
+      "textBytes": 66
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 609,
+      "textBytes": 62
+    },
+    {
+      "phase": "repeated status",
+      "tool": "workspace_info",
+      "bytes": 477,
+      "textBytes": 66
+    },
+    {
+      "phase": "repeated status",
+      "tool": "read_document",
+      "bytes": 609,
+      "textBytes": 62
+    },
+    {
+      "phase": "archive preview",
+      "tool": "archive_change",
+      "bytes": 2479,
+      "textBytes": 62
+    },
+    {
+      "phase": "archive preview",
+      "tool": "read_change_file",
+      "bytes": 3202,
+      "textBytes": 62
+    },
+    {
+      "phase": "archive preview",
+      "tool": "read_document",
+      "bytes": 1751,
+      "textBytes": 62
+    },
+    {
+      "phase": "archive preview",
+      "tool": "read_document",
+      "bytes": 958,
+      "textBytes": 62
+    },
+    {
+      "phase": "archive preview",
+      "tool": "archive_change",
+      "bytes": 749,
+      "textBytes": 62
+    }
+  ],
+  "calls": 16,
+  "totalBytes": 19902,
+  "instructions": {
+    "calls": 2,
+    "totalBytes": 9149,
+    "rows": [
+      {
+        "phase": "drafting instructions (separate)",
+        "tool": "planning_instructions",
+        "bytes": 8947,
+        "textBytes": 62
+      },
+      {
+        "phase": "drafting instructions (separate)",
+        "tool": "planning_instructions",
+        "bytes": 202,
+        "textBytes": 62
+      }
+    ]
+  }
+}

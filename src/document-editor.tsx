@@ -1,10 +1,11 @@
+import { fullText } from "./panel-reading.js";
 import { MarkdownDocument } from "./markdown-document.js";
 import React, { useEffect, useState, useRef } from "react";
 import type { ReviewComment } from "./document-store.js";
 import { locateReviewSelection } from "./review-selection.js";
 type Document = { path: string; content: string; revision: string; comments: ReviewComment[] };
 type Call = (tool: string, args: Record<string, unknown>) => Promise<Record<string, unknown>>;
-export function DocumentEditor({ id, path, call, onDirty }: { id: string; path: string; call: Call; onDirty: (path: string, dirty: boolean) => void }) {
+export function DocumentEditor({ id, path, call, onDirty, locked = false }: { id: string; path: string; call: Call; onDirty: (path: string, dirty: boolean) => void; locked?: boolean }) {
   const readerRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDetailsElement>(null);
   const commentRef = useRef<HTMLTextAreaElement>(null);
@@ -27,7 +28,8 @@ export function DocumentEditor({ id, path, call, onDirty }: { id: string; path: 
   const [draft, setDraft] = useState("");
   const [comment, setComment] = useState("");
   const [selection, setSelection] = useState({ start: 0, end: 0 });
-  const [busy, setBusy] = useState(false);
+  const [working, setBusy] = useState(false);
+  const busy = working || locked;
   const [error, setError] = useState("");
   const dirty = !!document && draft !== document.content;
   useEffect(() => {
@@ -40,13 +42,13 @@ export function DocumentEditor({ id, path, call, onDirty }: { id: string; path: 
     try { await action(); } catch (error) { setError(error instanceof Error ? error.message : "Operation failed."); } finally { setBusy(false); }
   }
   async function load() {
-    const next = (await call("read_document", { id, path })).result as Document;
+    const next = await fullText(call, "read_document", { id, path }) as unknown as Document;
     setDocument(next); setDraft(next.content); setSelection({ start: 0, end: 0 });
   }
   useEffect(() => { void run(load); }, [id, path]);
   // A pending comment also prevents the parent from replacing this editor.
   useEffect(() => { onDirty(path, dirty || !!comment); }, [dirty, comment, path]);
-  return <article className="document-editor" aria-label={path}><header className="document-heading"><h2>{path}</h2><div className="document-mode"><button aria-pressed={!editing} onClick={() => { setEditing(false); setSelection({ start: 0, end: 0 }); setSelectionError(""); }}>Read</button><button aria-pressed={editing} onClick={() => { setEditing(true); setSelectionError(""); }}>Edit / select text</button></div></header>
+  return <article className="document-editor" aria-label={path}><header className="document-heading"><h2>{path}</h2><div className="document-mode"><button disabled={busy} aria-pressed={!editing} onClick={() => { setEditing(false); setSelection({ start: 0, end: 0 }); setSelectionError(""); }}>Read</button><button disabled={busy} aria-pressed={editing} onClick={() => { setEditing(true); setSelectionError(""); }}>Edit / select text</button></div></header>
     {document && <>
       <div className="review-shortcuts"><button disabled={busy || dirty || !!selectionError} onClick={openReview}>{selection.end > selection.start ? "Comment on selection" : "Add document comment"}</button><button onClick={openReview}>View comments ({document.comments.length})</button></div>
       {!editing && <p className="selection-hint">Select a passage to comment on it.</p>}

@@ -164,3 +164,11 @@ html[data-embedded="true"] .plan-view { display:flex; flex-direction:column; ove
 
 .review-shortcuts { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:8px; padding:8px 0; background:var(--color-background-primary); }
 .selection-hint { font-size:13px; color:var(--color-text-secondary); }
+.change-status { font-size:12px; }
+.archive-review { margin-block:16px; padding-block:12px; border-block:1px solid var(--color-border-primary); }
+.archive-review label { display:block; margin-block:12px; line-height:1.6; }
+.archive-review input:not([type="checkbox"]), .archive-review textarea { display:block; width:100%; font:inherit; color:inherit; background:var(--color-background-secondary); border:1px solid var(--color-border-primary); border-radius:6px; padding:8px; }
+.archive-review textarea { min-height:100px; resize:vertical; }
+.archive-review pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:360px; overflow:auto; font-size:12px; }
+.archive-review fieldset { margin-block:12px; border:1px solid var(--color-border-primary); }
+.validation-result { max-height:360px; overflow:auto; overflow-wrap:anywhere; }

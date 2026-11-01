@@ -28,7 +28,7 @@ The plugin exposes `open_planner`, `read_board`, an app-only `save_board`, and w
 4. Verify drawing proposals and chat handoff in the installed host, then transfer selected document content to the board.
 5. Exercise the full planning-to-implementation handoff.
 
-The current panel supports repository-scoped drawing boards, OpenSpec change creation, document reading, and strict validation. Existing Markdown documents can be edited and reviewed with comments anchored to saved revisions. Drawing proposals can be reviewed and explicitly applied. Agent proposals for document edits remain unimplemented.
+The current panel supports repository-scoped drawing boards, OpenSpec change creation, document reading, strict validation, and explicit reviewed spec-sync/archive closeout. Existing Markdown documents can be edited and reviewed with comments anchored to saved revisions. Drawing proposals can be reviewed and explicitly applied. Agent proposals for document edits remain unimplemented.
 
 ## Local plugin discovery
 
@@ -44,7 +44,7 @@ English is the project and product language, including the interface, design doc
 
 Use exact dependency versions and commit the lockfile. The agreed maintenance workflow is a weekly dependency check that opens update pull requests, using Renovate or an equivalent repository service. Each SpecPlanner release ships a tested combination of OpenSpec, Excalidraw, and MCP dependencies. Dependency updates must not be merged automatically.
 
-Before releasing an OpenSpec update, verify creation, reading, and validation of specifications, compatibility with existing projects, and any changes needed in the adapter or planning skill. Compatible updates can ship in a patch release. Changes to workflows or document formats require an explicit compatibility review and an appropriate release version.
+Before releasing an OpenSpec update, verify creation, reading, validation, tracked-task parsing, archive preview/spec sync/archiving, compatibility with existing projects, and any changes needed in the adapter or planning skill. Compatible updates can ship in a patch release. Changes to workflows or document formats require an explicit compatibility review and an appropriate release version.
 
 Updating the plugin must not silently rewrite existing specifications. Any required migration is a separate, reviewable step with a diff.
 
@@ -52,7 +52,7 @@ Status: this is the agreed release policy. Scheduled checks and release automati
 
 ## Standalone package and verification
 
-Run `npm run verify:package` to build `releases/specplanner-0.1.0/` and test it from a temporary installation directory containing spaces. The package bundles its JavaScript dependencies; only Node.js 22 or later is required at runtime. The test exercises the actual stdio handshake, discovery, tool call, and UI resource loading using only the shipped files. The official OpenSpec CLI and its runtime dependencies are copied into the release with their original package layout, including schemas and licenses.
+Run `npm run verify:package` to build the current versioned directory under `releases/` and test it from a temporary installation directory containing spaces. The package bundles its JavaScript dependencies; only Node.js 22 or later is required at runtime. The test exercises the actual stdio handshake, discovery, tool call, and UI resource loading using only the shipped files. The official OpenSpec CLI and its runtime dependencies are copied into the release with their original package layout, including schemas and licenses.
 
 For local installation testing:
 
@@ -197,3 +197,11 @@ A thread entrypoint invokes the server with empty arguments. When no explicit wo
 Connection records are local, persist across server instances, expire after ten minutes, and accept only one workspace. Concurrent panels have different requests; there is no global last-used project. Explicit project and personal-board opens skip the handshake. A null response means the chat has no project. The panel waits up to two minutes, then shows an error and manual repository selection. Closing the panel or selecting a workspace stops polling. Expired connection record files are retained locally under the plugin data directory.
 
 Verified locally: the empty-argument launch/connection/poll sequence over MCP, independent simultaneous panels, competing bindings, expiry, and personal-board behavior. The actual + menu, host message delivery, and agent completion still require an installed-host test.
+
+## Closeout and context in 0.2.0
+
+Changes can now be explicitly previewed and archived with the pinned official CLI. Preview uses a temporary repository, exposes exact proposed main-spec changes and retained files, and reports incomplete tasks, unknown verification, conflicts, dependencies, overlaps and destination collisions. Application requires a current preview, saved verification evidence and explicit review confirmations. Concurrent edits invalidate the preview; operation receipts report actual changes and recovery after errors. Document saves, comments and archive share a cross-process lock. The panel displays planning/task/verification/archive states and preserves access to original archived reviews.
+
+MCP orientation/status responses are compact. Inventories, selected files, exact comments and archive details are explicitly paginated; unchanged document and comment revisions can be reused independently. The bundled panel follows the new contracts and preserves editing, drafts, library browsing, boards and project isolation. This is a response-contract change: clients expecting full `workspace_info` inventories or full `read_change` bodies must update. No project migration or installed-cache update is performed.
+
+See [closeout and context contracts](docs/closeout-and-context.md), [measured context sizes](docs/context-measurements.md), and [validation results](docs/validation-0.2.0.md). Native installed-host integration still requires verification.
