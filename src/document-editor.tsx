@@ -1,6 +1,6 @@
 import { fullText } from "./panel-reading.js";
 import { MarkdownDocument } from "./markdown-document.js";
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import type { ReviewComment } from "./document-store.js";
 import { locateReviewSelection } from "./review-selection.js";
 type Document = { path: string; content: string; revision: string; identity: string; comments: ReviewComment[] };

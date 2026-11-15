@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { mkdtemp, rm, mkdir, realpath } from "node:fs/promises";
+import { mkdtemp, rm, mkdir, realpath, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -17,16 +17,42 @@ test("panel connections isolate concurrent projects, survive a new server instan
     const first = await a.create(); const second = await b.create();
     assert.deepEqual(await a.read(first), { connected: false });
     await Promise.all([a.bind(first, "/project/a"), b.bind(second, "/project/b")]);
-    assert.equal((await b.read(first)).workspacePath, "/project/a");
-    assert.equal((await a.read(second)).workspacePath, "/project/b");
+    assert.deepEqual(await b.read(first), { connected: true, workspacePath: "/project/a" });
+    assert.deepEqual(await a.read(second), { connected: true, workspacePath: "/project/b" });
     await assert.rejects(b.bind(first, "/project/b"), /already connected/);
     await a.bind(first, "/project/a");
+    const personal = await a.create();
+    assert.deepEqual(await b.bind(personal, null), { connected: true, workspacePath: null });
     const race = await a.create();
     const results = await Promise.allSettled([a.bind(race, "/a"), b.bind(race, "/b")]);
     assert.equal(results.filter(result => result.status === "fulfilled").length, 1);
     await assert.rejects(a.read("../file"), /Invalid/);
     now = 600_000;
     await assert.rejects(a.read(first), /expired/);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("malformed connection records cannot bypass expiry or replace an existing binding", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "specplanner-connect-invalid-"));
+  const connections = new WorkspaceConnections(dir, () => 0);
+  try {
+    const id = await connections.create();
+    const requestPath = join(dir, `${id}.request.json`);
+    const workspacePath = join(dir, `${id}.workspace.json`);
+    for (const request of [{}, { expiresAt: null }, { expiresAt: "later" }, { expiresAt: -1 }]) {
+      await writeFile(requestPath, JSON.stringify(request));
+      await assert.rejects(connections.read(id), { name: "ZodError" });
+      await assert.rejects(connections.bind(id, "/project/a"), { name: "ZodError" });
+      await assert.rejects(readFile(workspacePath), { code: "ENOENT" });
+    }
+    await writeFile(requestPath, JSON.stringify({ expiresAt: 600_000 }));
+    for (const binding of [{}, { workspacePath: "" }, { workspacePath: 42 }, { workspacePath: "/project/a", connected: false }]) {
+      const content = JSON.stringify(binding);
+      await writeFile(workspacePath, content);
+      await assert.rejects(connections.read(id), { name: "ZodError" });
+      await assert.rejects(connections.bind(id, "/project/a"), { name: "ZodError" });
+      assert.equal(await readFile(workspacePath, "utf8"), content);
+    }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

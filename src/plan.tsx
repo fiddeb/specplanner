@@ -3,7 +3,7 @@ import { fullText, type Page } from "./panel-reading.js";
 import { DocumentEditor } from "./document-editor.js";
 import type { ReviewComment } from "./document-store.js";
 import { MarkdownDocument } from "./markdown-document.js";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { PanelClient } from "./panel-client.js";
 type Workspace = { configured: boolean; name?: string; path?: string; activeChanges: number; changes: string[]; documents?: { path: string; category: string }[] };
 type LibraryDocument = { path: string; category: string };

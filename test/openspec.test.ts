@@ -24,8 +24,12 @@ test("official OpenSpec stays in the configured repo and reads generated plannin
     await assert.rejects(readFile(join(parent, "openspec/changes/test-plan/.openspec.yaml")));
     const instructions = await workspace.instructions("test-plan", "proposal");
     assert.ok("template" in instructions, "Official OpenSpec template remains available");
-    const validation = await workspace.validate("test-plan");
-    assert.ok(validation);
+    const validation = await workspace.validate("test-plan") as { items: { id: string; type: string; valid: boolean; issues: { level: string }[] }[]; summary: { totals: { items: number; passed: number; failed: number } } };
+    assert.deepEqual(validation.summary.totals, { items: 1, passed: 0, failed: 1 });
+    assert.equal(validation.items[0].id, "test-plan");
+    assert.equal(validation.items[0].type, "change");
+    assert.equal(validation.items[0].valid, false);
+    assert.ok(validation.items[0].issues.some(issue => issue.level === "ERROR"), "An empty change must return validation findings");
     await writeFile(join(root, "openspec/changes/test-plan/proposal.md"), "# Proposal\n\nEnglish planning content.\n");
     assert.deepEqual((await workspace.read("test-plan")).documents, [{ path: "proposal.md", content: "# Proposal\n\nEnglish planning content.\n" }]);
     await assert.rejects(workspace.create("test-plan"));

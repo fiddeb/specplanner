@@ -22,10 +22,11 @@ export async function verifyOrcaPackage(installed: string, workspace: string, da
     assert.ok(Buffer.byteLength(source) < 16 * 1024 * 1024);
     runInNewContext(source, registry, { timeout: 1000 });
   }
-  const fonts = registry.__specplannerFontAssets!;
+  const fonts = registry.__specplannerFontAssets;
+  assert.ok(fonts, "The packaged font scripts must initialize the asset registry");
   const references = [...nativeScript.matchAll(/globalThis\.__specplannerFontAssets\["([^\"]+)"\]/g)];
-  assert.equal(references.length, 230, "Review font assets when updating the pinned Excalidraw package");
-  assert.equal(Object.keys(fonts).length, 230);
+  assert.ok(references.length > 0, "The panel must reference its bundled fonts");
+  assert.deepEqual(Object.keys(fonts).sort(), [...new Set(references.map(match => match[1]))].sort(), "Bundle exactly the fonts referenced by the panel");
   for (const [, path] of references) {
     assert.match(fonts[path], /^data:font\/woff2;base64,/);
     assert.equal(Buffer.from(fonts[path].split(",")[1], "base64").subarray(0, 4).toString("ascii"), "wOF2");

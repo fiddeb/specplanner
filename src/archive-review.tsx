@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { allPages, fullText, type Page, type ToolCall } from "./panel-reading.js";
 type Preview = { token: string; destination: string; files: number; planning: { status: string }; tasks: { status: string; total: number; completed: number; remaining: number }; blockers: Page<string>; affectedSpecs: Page<{ path: string; operation: string }>; evidence: Page<{ path: string }>; overlaps: Page<unknown>; dependencies: { status: string } };
 export function ArchiveReview({ id, call, dirty, locked, onBusyChange, onArchived }: { id: string; call: ToolCall; dirty: boolean; locked: boolean; onBusyChange: (busy: boolean) => void; onArchived: (result: unknown) => Promise<void> }) {

@@ -1,5 +1,5 @@
 import { BoardCollaboration } from "./board-collaboration.js";
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Excalidraw, MainMenu, restoreElements, FONT_FAMILY, convertToExcalidrawElements, CaptureUpdateAction } from "@excalidraw/excalidraw";
 import type { ExcalidrawImperativeAPI, ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
 import type { ExcalidrawElement } from "@excalidraw/excalidraw/element/types";

@@ -80,7 +80,7 @@ export class ReviewHistory {
       if (plan.workspacePath !== root) throw new Error("Archive preview belongs to another workspace.");
       if (plan.destination === `changes/archive/${archiveName}` && plan.outcome?.outcome === "archived" && JSON.stringify(archived) === JSON.stringify(plan.files)) originals.add(changeId(plan.id));
     }
-    if (originals.size === 1) return [...originals][0];
+    return originals.size === 1 ? [...originals][0] : undefined;
   }
 
   async generation(id: string, archiveName?: string) {

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Excalidraw, restoreElements } from "@excalidraw/excalidraw";
 import type { ExcalidrawInitialDataState } from "@excalidraw/excalidraw/types";
 import type { PanelClient } from "./panel-client.js";

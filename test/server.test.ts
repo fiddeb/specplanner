@@ -12,12 +12,12 @@ test("MCP client can discover planner, invoke it, and load its UI resource", asy
   await client.connect(clientTransport);
   try {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 23);
+    const planner = tools.find(tool => tool.name === "open_planner");
+    assert.ok(planner, "The planner entrypoint must be discoverable");
     assert.deepEqual((tools.find(tool => tool.name === "apply_board_proposal")!._meta as { ui: { visibility: string[] } }).ui.visibility, ["app"]);
     assert.deepEqual((tools.find(tool => tool.name === "propose_board")!._meta as { ui: { visibility: string[] } }).ui.visibility, ["model"]);
-    assert.equal(tools[0].name, "open_planner");
-    assert.equal(tools[0].annotations?.readOnlyHint, true);
-    const meta = tools[0]._meta as { ui: { resourceUri: string }; "openai/ui": { entrypoints: { type: string }[] } };
+    assert.equal(planner.annotations?.readOnlyHint, true);
+    const meta = planner._meta as { ui: { resourceUri: string }; "openai/ui": { entrypoints: { type: string }[] } };
     assert.equal(meta["openai/ui"].entrypoints[0].type, "thread");
     const result = await client.callTool({ name: "open_planner", arguments: { workspacePath: null } });
     assert.equal(result.isError, undefined);

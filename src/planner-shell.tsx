@@ -1,4 +1,4 @@
-import React, { useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { PanelClient } from "./panel-client.js";
 import { Board } from "./board.js";
 import { Plan } from "./plan.js";

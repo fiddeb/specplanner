@@ -1,10 +1,11 @@
 import { bindWorkspace } from "./panel-client.js";
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { App, applyDocumentTheme, applyHostStyleVariables, applyHostFonts } from "@modelcontextprotocol/ext-apps";
 import { PlannerShell } from "./planner-shell.js";
 import { OrcaPlanner } from "./orca-panel.js";
 import type { OrcaFrame } from "./orca-contract.js";
+import { workspaceConnectionSchema } from "./workspace-connection-model.js";
 import "./panel.css";
 
 document.documentElement.dataset.embedded = String(window.parent !== window);
@@ -27,8 +28,8 @@ function Planner() {
         const result = await connection!.callServerTool({ name: "workspace_connection", arguments: { requestId: connectionRequestId } });
         if (stopped || initialized.current) return;
         if (result.isError) throw new Error(result.content?.filter(item => item.type === "text").map(item => item.text).join(" ") || "Unable to connect this project.");
-        const info = result.structuredContent as { connected?: boolean; workspacePath?: string | null };
-        if (info.connected && (typeof info.workspacePath === "string" || info.workspacePath === null)) {
+        const info = workspaceConnectionSchema.parse(result.structuredContent);
+        if (info.connected) {
           initialized.current = true; setWorkspacePath(info.workspacePath); setConnectingProject(false); return;
         }
         if (Date.now() - started > 120_000) throw new Error("The agent has not connected this panel yet. Reopen SpecPlanner to retry, or choose a repository below.");

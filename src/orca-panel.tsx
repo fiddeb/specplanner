@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { connectOrca, orcaClient } from "./orca-client.js";
 import type { OrcaBinding, OrcaFrame } from "./orca-contract.js";
 import { PlannerShell } from "./planner-shell.js";
