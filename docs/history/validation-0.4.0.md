@@ -1,6 +1,6 @@
 # SpecPlanner 0.4.0 verification
 
-Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.1 verification](../validation-0.5.1.md).
 
 Date: 2026-11-15. Local Node: 26.10.0. Installed Orca: 1.4.259. No commit, public release, or remote publication was created.
 

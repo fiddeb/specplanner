@@ -1,6 +1,6 @@
 # SpecPlanner 0.3.0 review and validation
 
-Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.1 verification](../validation-0.5.1.md).
 
 Reviewed on 2026-11-11 against the 0.2.0 source at `bd5ac52b6742837820eab7db00abbaf402b95e6e`. Version 0.3.0 is a local package candidate. It is suitable for source review and controlled local evaluation; native host integration and remaining dependency findings prevent an unconditional release-readiness claim. No commit, push, public release, or installed-plugin replacement is part of this validation.
 

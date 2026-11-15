@@ -30,7 +30,13 @@ In the actual Orca 1.4.259 host, the approved 0.5.1 development load bound to th
 
 The host-tested MCP server SHA-256 is `8d3877eeeecbd9723bea3e4fdad4d035c1b6afb97b7bf1e614ff38d05e71ca86`; the Orca worker SHA-256 is `a8892651cdfecc5593162bf7124e768f5d769edc199f541b3a2075b80d4ef80d`. Supporting local observations are in `/private/tmp/specplanner-051-native-flow.json` and `/private/tmp/specplanner-051-native.png`; those temporary files are not required to interpret the recorded outcomes.
 
-CI and standard-installation results remain pending for this candidate. Final publication must use the clean source revision recorded in the archive's `build-info.json` and its corresponding checksums.
+The [candidate CI run](https://github.com/fiddeb/specplanner/actions/runs/43748787863) passed on Ubuntu for Node 22.13.0, 24 and 26 at source commit `8a8652f853fb2c07c5748c02cd553008bb0fbbfe`. Every job completed clean dependency installation, type checking, all 68 tests, package/build verification, npm audit with zero known vulnerabilities, guarded release archiving and artifact upload. The downloaded Node 24 archive passed its checksum; its server and worker hashes exactly match the host-tested bytes above. Later documentation-only commits retain those runtime hashes. The final release's `build-info.json` and `SHA256SUMS` identify its exact source revision and archive.
+
+A clean extraction of the local archive into a separate directory containing spaces passed the complete installed-package verifier. Its self-contained marketplace installed and enabled SpecPlanner 0.5.1 in Codex. The actual cache copy passed the same isolated protocol/package checks and matched the server hash above. A fresh Codex app-server discovered the enabled `specplanner:specplanner` skill from the 0.5.1 cache and the SpecPlanner MCP server with 23 tools. No model invocation was used for discovery.
+
+The same extracted archive installed in Orca as a standard non-development plugin. After removing the development load and approving the standard installation, its panel connected to the original project, displayed saved board revision 0 and version 0.5.1, and rendered without capture errors. Existing project data was retained. The source move from a development/release directory to an extracted archive requires Orca's normal approval, even when the requested capabilities are unchanged.
+
+The public distribution is a GitHub pilot prerelease with a built tarball and checksums. GitHub's automatic source archives omit compiled assets and are not the installable package. Private vulnerability reporting is enabled on the repository. Publication and fresh installation do not establish Codex desktop panel placement or another person's machine; those remain outside the evidence above.
 
 ## Limits
 

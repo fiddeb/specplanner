@@ -80,7 +80,7 @@ Clients expecting full workspace inventories, `read_change` document bodies, com
 
 Tests use temporary repositories and the real pinned CLI. Coverage includes delta/no-delta archive, unknown/incomplete tasks, missing verification, spec conflicts, overlaps/order/dependencies, collisions, retries, concurrent plugin writes, external changes before/during apply, binary/metadata preservation, long IDs, exact reviews, partial errors, workspace/symlink boundaries, compact/full reads, conditional revisions, stable pages and project isolation. Package verification includes preview/sync/apply/retry and archived reviews from an installation directory with spaces.
 
-See [verification](validation-0.5.0.md) for build and host evidence and [history](history/README.md) for earlier measurements and review outcomes. Native installed-host sizing, message delivery and tool presentation require their own checks.
+See [verification](validation-0.5.1.md) for build and host evidence and [history](history/README.md) for earlier measurements and review outcomes. Native installed-host sizing, message delivery and tool presentation require their own checks.
 
 Review history uses physical change directory identity (device, inode, birth time) and original change ID. In-place edits and normal renames preserve that identity. SpecPlanner records an explicit association after an archive, including copy/remove operations. Creating a new directory with the same name creates a new history. Direct file edits keep SHA-256 content revisions. Old panel drafts and stale archive previews cannot target a replacement directory.
 
