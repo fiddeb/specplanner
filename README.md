@@ -29,11 +29,13 @@ npm test
 npm run verify:package
 ```
 
+`check` type-checks source, scripts and npm tests, and rejects unused declarations, implicit missing returns, missing override markers, switch fallthrough, unresolved side-effect imports, unreachable code and unused labels. The project has no separate linter.
+
 `verify:package` builds `releases/specplanner-0.5.0/`, then tests the shipped files from an isolated directory with spaces in its name. The package includes both host manifests, the panel assets, both server entrypoints, the official OpenSpec runtime, and third-party license notices. No npm install is needed inside the release directory.
 
 With Orca installed, also run `orca plugin test releases/specplanner-0.5.0 --json` and `orca plugin check releases/specplanner-0.5.0 --json`. Use the packaged directory for Orca's test runner; use `npm test` for npm source tests.
 
-Native Orca 1.4.259 has been verified locally for panel rendering, proposal review/application, document editing, comments, OpenSpec execution and worker restart recovery. Codex desktop conversation-panel placement remains unverified.
+Native Orca 1.4.259 has recorded checks for panel rendering, proposal review/application, document editing, comments, OpenSpec execution and worker restart recovery. Those checks identify specific installed builds; the latest local maintenance build has only protocol and package verification. Codex desktop conversation-panel placement remains unverified.
 
 Protocol and package tests are distinct from host integration. They cover real MCP stdio and the shipped Orca worker against a host stand-in, including shared storage and cross-host revision conflicts. See [the 0.5 verification record](docs/validation-0.5.0.md) for actual-host results and limitations.
 
@@ -83,7 +85,7 @@ References: [Codex plugin packaging](https://developers.openai.com/plugins/build
 - **Closeout:** inspect task status and an archive preview, review dependencies and specification diffs, supply verification evidence, and explicitly apply the reviewed archive. Implementation authorization remains outside prompts.
 - **Decisions:** points to each change's `design.md` in Plan, where decisions and their reasons belong. Dedicated decision editing, new-document authoring in the UI, and agent document-edit proposals are not implemented.
 
-Tab switching retains drafts. Reloading saved content asks before discarding edits. Moving a drawing element does not call a model. Request drawing and Discuss changes are explicit handoffs; Orca prepares text for copying, while an MCP Apps host may accept a message directly.
+See the [panel guide](docs/panel-guide.md) for editing, review comments, drawing proposals, draft handling and chat handoff.
 
 All project content is English. Swedish feedback is incorporated into English output; original review comments remain unchanged. The [planning contract](docs/planning-contract.md) defines the durable record: proposals explain why, specifications define behavior, designs retain decisions and tradeoffs, and tasks link those contracts to acceptance checks. Accepted chat and review decisions must be incorporated into repository artifacts.
 
@@ -103,10 +105,10 @@ See [closeout, context and history contracts](docs/closeout-and-context.md) for 
 
 Both hosts use compact inventories, paginated proposal summaries, bounded review previews, selected document reads, and revision-based reuse. Repeated board reads omit unchanged scenes; artifact instructions can reuse unchanged project context and writing policy. Full originals remain retrievable. Orca's panel calls the core directly; UI reads and chunk transfers do not consume model tokens.
 
-The [0.5 upgrade comparison](docs/efficiency-0.5.0.json) records the OpenSpec 2 payload impact. The [0.4.1 measurements](docs/efficiency-0.4.1.json) cover repeated boards, cross-artifact instructions and large review selections. The [0.3 measurements](docs/efficiency-0.3.0.json) cover proposal summaries and document reads. These are fixture-specific payload counts, not fixed reductions in total model cost. The [verification record](docs/validation-0.5.0.md) includes overhead and limitations.
+The [0.5 upgrade comparison](docs/efficiency-0.5.0.json) records the OpenSpec 2 payload impact. Earlier payload measurements and their methods are indexed in [verification history](docs/history/README.md). These are fixture-specific payload counts, not fixed reductions in total model cost.
 
 ## Maintenance and license
 
-MIT for SpecPlanner's own code. Packages include third-party notices and retained license texts. Excalidraw **0.18.1** and OpenSpec **2.0.0** are pinned official packages. Updates require compatibility review and testing; no automatic merging or publishing is configured. CI verifies Node 22.13, 24, and 26; weekly Dependabot checks take effect when hosted on GitHub.
+MIT for SpecPlanner's own code. Packages include third-party notices and retained license texts. Excalidraw **0.18.1** and OpenSpec **2.0.0** are pinned official packages. Updates require compatibility review and testing; no automatic merging or publishing is configured. CI is configured for Node 22.13, 24, and 26; weekly Dependabot checks take effect when hosted on GitHub. Local checks do not establish that remote jobs ran.
 
-Remaining advisories and release limitations are recorded in the verification documents. No public release has been published. Older installation and browser-preview evidence is retained in [host validation history](docs/host-validation-history.md).
+The [verification record](docs/validation-0.5.0.md) distinguishes local builds, installed-host evidence, dated dependency findings and remaining limitations. No public release has been published.

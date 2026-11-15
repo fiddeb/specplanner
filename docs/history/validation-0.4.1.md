@@ -1,5 +1,7 @@
 # SpecPlanner 0.4.1 review
 
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+
 Reviewed the instructions, agent workflow, planning records, model-facing data contracts, shared core, packaging and relevant UI guidance. This extends the 0.3 and 0.4 reviews; it is not a new dependency security audit. All work remains local and uncommitted.
 
 ## Findings and changes

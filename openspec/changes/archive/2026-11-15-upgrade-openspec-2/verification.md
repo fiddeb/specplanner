@@ -1,8 +1,8 @@
 # Verification
 
-## Result
+## Result before archive
 
-Implementation and local installation passed. All six implementation tasks are complete. This evidence was collected before Git integration. The change remains active; no archive, remote CI run or public publication was performed. Validation does not substitute for the tests and host evidence below.
+Implementation and local installation passed. All six implementation tasks were complete when this evidence was collected before Git integration. At that point the change remained active; no archive, remote CI run or public publication had been performed. See the archive assessment below for subsequent closeout. Validation does not substitute for the tests and host evidence below.
 
 ## Tested build
 
@@ -23,7 +23,7 @@ Implementation and local installation passed. All six implementation tasks are c
 | 3.1 / Migration acceptance / D4 | `npm run check`, all 67 tests, build and isolated package verification passed after the final code edits. Independent review found the blank-checkbox summary bug; correction and path guard hardening passed re-review. The comparative process-replacement test passed for both release and final installed Codex cache, including exact reviews, board revision, archive and rollback reads. |
 | 3.2 / Installed hosts / D4 | Orca's real worker created a disposable OpenSpec 2 change, validated this change, read task counts and preserved board revision 0 across restart. The test change was removed. Global native plugin 0.5.0 is installed, non-development, with its connected Plan panel visible; the final installed worker displayed complete task status (6/6) for this change. Codex plugin 0.5.0 is globally enabled; a fresh app-server finds its skill and MCP server. Existing chat connections retain their previous server until reconnected. |
 
-The [release verification record](../../../docs/validation-0.5.0.md), [migration comparison](../../../docs/migration-0.5.0.json) and [token measurements](../../../docs/efficiency-0.5.0.json) contain scope, method and limitations. Detailed local logs are `/private/tmp/specplanner-050-tests.log`, `specplanner-050-package.log`, `specplanner-050-mutation.log`, `specplanner-050-native-flow.json`, `specplanner-050-cache-migration.json`, `specplanner-050-skill-discovery.json` and `specplanner-050-codex-mcp-discovery.json` in the same temporary directory. These logs are supporting local evidence; durable outcomes are recorded here and in the linked reports.
+The [release verification record](../../../../docs/validation-0.5.0.md), [migration comparison](../../../../docs/migration-0.5.0.json) and [token measurements](../../../../docs/efficiency-0.5.0.json) contain scope, method and limitations. Detailed local logs are `/private/tmp/specplanner-050-tests.log`, `specplanner-050-package.log`, `specplanner-050-mutation.log`, `specplanner-050-native-flow.json`, `specplanner-050-cache-migration.json`, `specplanner-050-skill-discovery.json` and `specplanner-050-codex-mcp-discovery.json` in the same temporary directory. These logs are supporting local evidence; durable outcomes are recorded here and in the linked reports.
 
 ## Source comparison
 
@@ -32,3 +32,11 @@ The user authorized upgrading for a sole-user project while retaining both Orca 
 ## Limits and recovery
 
 External store pointers require explicit selection of the store repository. Task-status checks now spawn the bounded official CLI; latency was not benchmarked. The four-artifact token fixture increased subsequent instruction responses by 46 tokens and discovery by 7; new operation payload sizes were not benchmarked. Codex desktop conversation-panel placement and Orca light-theme rendering remain unverified. Reinstalling the retained 0.4.1 package restores the old runtime and can read the tested stored formats, but lacks the root protection and apply/archive tool options.
+
+## Archive assessment, 2026-11-15
+
+The preceding evidence describes the original upgrade and installation checks. The upgrade is now committed on `main` at `f8024cbea746d0602bdf2ad568b84222671a2c57`. The owner explicitly authorized archiving this completed change. All six tasks remain complete, strict change validation passes without issues, and the archive preview reports no blockers, dependencies or overlapping changes. Its only baseline operation creates `specs/planning-integration/spec.md` from the four requirements above; no existing baseline requirement is replaced.
+
+Subsequent, uncommitted maintenance in the same checkout strengthened TypeScript checks, documented test/comment policy, validated persisted panel connections through a shared schema, and improved existing assertions. These changes do not expand the upgrade's six tasks. On this checkout, `npm run check` passed, `npm test` passed all 68 cases, and `npm run verify:package` passed its build and isolated MCP/Orca package checks. An isolated mutation allowing a connection record without an expiry still passed type checking but failed the malformed-record regression test as intended. `git diff --check` passed at closeout.
+
+The current local release and `dist/` bytes match: MCP server SHA-256 `a702e4471ca3ce5af43761d21d5f7eeaa4abd4ac19dab68eae7b095a05fd9593`; Orca worker SHA-256 `c6a15465e764dd26bd3085085d0e9f1f31760e79a37c7b41ccd26e4425fe4e7b`. These are local maintenance builds, distinct from the installed upgrade build identified earlier. Actual Orca/Codex integration was not repeated for the maintenance build. Archiving does not assert a new installation, remote CI result or publication.

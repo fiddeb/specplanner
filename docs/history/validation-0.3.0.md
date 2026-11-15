@@ -1,5 +1,7 @@
 # SpecPlanner 0.3.0 review and validation
 
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+
 Reviewed on 2026-11-11 against the 0.2.0 source at `bd5ac52b6742837820eab7db00abbaf402b95e6e`. Version 0.3.0 is a local package candidate. It is suitable for source review and controlled local evaluation; native host integration and remaining dependency findings prevent an unconditional release-readiness claim. No commit, push, public release, or installed-plugin replacement is part of this validation.
 
 ## Correctness changes
@@ -73,7 +75,7 @@ Remaining findings:
 2. Resolve or explicitly accept the remaining dependency exposure with the affected Mermaid/KaTeX flows tested. The current review does not certify arbitrary untrusted diagram imports.
 3. Observe CI on the remote repository before treating the Node 24/26 Linux jobs as verified. Local Node 22/26 runs were on macOS.
 
-Review-history identity is local to the physical repository directory. Repository copies/restores and ambiguous legacy reuse can require manual reconciliation; the [compatibility contract](closeout-and-context.md#compatibility-and-verification) describes these cases. Preserve both repository files and private SpecPlanner data when backing up or moving existing planning work.
+Review-history identity is local to the physical repository directory. Repository copies/restores and ambiguous legacy reuse can require manual reconciliation; the [compatibility contract](../closeout-and-context.md#compatibility-and-verification) describes these cases. Preserve both repository files and private SpecPlanner data when backing up or moving existing planning work.
 
 ## Orca plugin compatibility review (2026-11-15)
 

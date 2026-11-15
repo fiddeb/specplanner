@@ -1,5 +1,7 @@
 # Validation of SpecPlanner 0.2.0
 
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+
 Validated locally on 2026-11-01 using Node.js 26.10.0 and the pinned official OpenSpec CLI 1.14.2. Node.js 22 remains the declared runtime minimum; this run did not separately execute on Node.js 22.
 
 | Check | Result |
@@ -23,4 +25,4 @@ Package verification covers real stdio discovery and UI resources, official chan
 
 The production example repository was not opened or modified. The installed 0.1.8 cache was read only for baseline measurement; it was not upgraded. Native Codex plugin installation, installed MCP App sizing, host message delivery and host presentation of structured results remain unverified. Browser/build/protocol checks do not establish those integrations. Existing dependency-audit limitations in README remain unchanged.
 
-See [behavior and limits](closeout-and-context.md) and [measurement method and raw records](context-measurements.md). External filesystem writers remain outside the plugin lock; partial operations can require explicit reconciliation. Receipt storage must be restored before persistent recovery reads can resume; unpersisted live diagnostics must be preserved from the failing response.
+See [behavior and limits](../closeout-and-context.md) and [measurement method and raw records](context-measurements.md). External filesystem writers remain outside the plugin lock; partial operations can require explicit reconciliation. Receipt storage must be restored before persistent recovery reads can resume; unpersisted live diagnostics must be preserved from the failing response.

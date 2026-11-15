@@ -1,13 +1,13 @@
-# Change closeout and bounded context (0.3.0)
+# Change closeout and bounded context
 
-The pinned official OpenSpec 1.14.2 CLI performs spec application and archiving. SpecPlanner adds an explicit review boundary, bounded reads, and observed outcomes. It exposes neither arbitrary commands nor validation-bypass flags. The supplied example repository was not opened or modified.
+The pinned official OpenSpec 2.0.0 CLI applies specification deltas and archives changes. SpecPlanner adds explicit review, bounded reads and observed outcomes. It exposes neither arbitrary commands nor validation-bypass flags. See [README](../README.md) for installation and the [panel guide](panel-guide.md) for user actions.
 
 ## State and authority
 
 | State | Evidence | What it does not establish |
 | --- | --- | --- |
 | Planning artifacts complete | Official schema output files exist | Document correctness or completed implementation |
-| Implementation tasks complete | Official parser reports all tracked checkboxes checked, including nested tasks | Tests ran or requirements were implemented |
+| Implementation tasks complete | Official apply JSON reports all tracked checkboxes checked, including nested and description-free tasks | Tests ran or requirements were implemented |
 | Implementation verified | Explicit caller assessment identifies saved evidence at the reviewed revision | SpecPlanner independently executed or proved those checks |
 | Archived | Actual specs and complete archived change match the reviewed fingerprints | Later external edits preserve that state |
 
@@ -57,28 +57,32 @@ Original review text, language, quotes, UTF-16 offsets, revisions and snapshots 
 | `read_change_file` | Exact text slice, default 12,000 UTF-16 units | `nextOffset`, `expectedRevision`, `knownRevision` |
 | `read_document` | Exact Markdown slice and original comments page | Independent text/comment continuation and revisions |
 | `read_project_document` | Exact library text slice | Text and available archived-review continuation |
-| `planning_instructions` | Full official artifact instructions and writing policy | `knownRevision`; reuse `knownWritingPolicyRevision` to omit only unchanged static policy across artifacts |
+| `planning_instructions` | Shared writing policy without a change; official artifact or apply/archive guidance when both `id` and `artifact` are supplied | `knownRevision` for the whole result; `knownContextRevision` and `knownWritingPolicyRevision` for unchanged context/policy across phases |
 | `archive_change` | Explicit preview summary | Inspect/read/apply/result; no automatic application |
+| `read_board` | Complete saved scene and numeric revision | Historical `revision`; scoped `cacheRevision` reused as `knownRevision` |
 | `propose_board` | Receipt: ID, base revision, summary, element count | Original scene retained; fetch through `read_board_proposal` |
 | `list_board_proposals` | Page of 20 proposal summaries | Cursor/limit up to 100; no scene bodies |
 | `read_board_proposal` | Complete selected proposal | Explicit proposal ID and workspace |
 
 Lists include `total`, `hasMore` and `nextCursor`. Cursors bind workspace, query/section, complete listing revision and position. Foreign or changed listings require a restart, never silent skipping. Archive `affectedSpecs` continues through section `specs`; other preview sections use their matching name. Text includes `total`, `offset`, `hasMore` and `nextOffset`; slices after offset zero require `expectedRevision`. UTF-16 units match editor/comment offsets and preserve Unicode when concatenated, including a split surrogate pair. Maximum text slices are 64,000 units. Files above 1 MB and binary evidence require repository file tools. Inspection rejects trees above 10,000 entries or 64 MB instead of returning an incomplete manifest. Symlinks and non-regular entries are rejected.
 
-Writes retain the existing SHA-256 content revision and require `expectedIdentity` from the read result. Text/comment continuations should also send `expectedIdentity`, rejecting a replaced change even when the bytes are identical. The panel reuses `knownCommentsRevision` on later text slices; only explicit comment continuations fetch the remaining original comments. Conditional document reads send both `knownRevision` and workspace/document-bound `knownCommentsRevision`. Unchanged content with new comments omits only the content. If both match, the response is compact and marked unchanged. A foreign project's revision cannot suppress a document. Comments have a separate cursor that rejects concurrent changes. Status revisions include review fingerprints. No document cache is used: filesystem reads detect panel changes, direct agent edits and other processes.
+Document writes require the saved SHA-256 content revision and `expectedIdentity` from the read result. Text/comment continuations should also send `expectedIdentity`, rejecting a replaced change even when the bytes are identical. Comment text and quote fields are complete up to 512 UTF-16 units each; longer fields have `textPage` or `quotePage` continuations. Retrieve the original through the same read tool using `commentId`, `commentField`, `offset` and that field's `expectedRevision`. The UI reconstructs every field before displaying it; storage never truncates comments or quotes.
+
+The panel reuses `knownCommentsRevision` on later text slices; only explicit comment continuations fetch the remaining original comments. Conditional document reads send both `knownRevision` and workspace/document-bound `knownCommentsRevision`. Unchanged content with new comments omits only the content. If both match, the response is compact and marked unchanged. A foreign project's revision cannot suppress a document. Comments have a separate cursor that rejects concurrent changes. Status revisions include review fingerprints. No document cache is used: filesystem reads detect panel changes, direct agent edits and other processes.
+
+Board `cacheRevision` includes workspace identity and board bytes, independently of the numeric saved revision. Instruction revisions include the workspace, selected artifact or operation, and policy. Matching `knownContextRevision` or `knownWritingPolicyRevision` omits only that unchanged content; official templates, rules and operation guidance remain present. Reuse any known revision only while its complete earlier content remains available to the caller; after context loss, fetch it again.
 
 Structured content is the data contract; full payloads are no longer serialized a second time in text blocks. Clients must expose MCP `structuredContent` to agents/panels. SDK and packaged stdio tests cover this contract; text-only legacy consumers require adaptation. The panel explicitly assembles only requested document/review pages instead of sending its entire library to the model.
 
 ## Compatibility and verification
 
-Version **0.2.0** introduced these response contracts: `workspace_info` no longer contains `changes`/`documents`; `read_change.result.documents` is a manifest page; read tools return bounded content with explicit continuation. Client integrations must follow these contracts. The bundled panel, preview harnesses, tests and package verifier do so. These 0.2 contracts remain in effect; 0.3 additionally changes proposal responses/listings and requires document identity on writes. Update external clients along with the server. The panel resource URI and package versions are 0.3.0. No installed-cache replacement is performed.
+Clients expecting full workspace inventories, `read_change` document bodies, complete scenes in proposal listings or writes without document identity must adapt to the contracts above. The bundled panel and package verifier use these contracts. Update external clients together with the server; rebuilding source does not replace an installed plugin.
 
 Tests use temporary repositories and the real pinned CLI. Coverage includes delta/no-delta archive, unknown/incomplete tasks, missing verification, spec conflicts, overlaps/order/dependencies, collisions, retries, concurrent plugin writes, external changes before/during apply, binary/metadata preservation, long IDs, exact reviews, partial errors, workspace/symlink boundaries, compact/full reads, conditional revisions, stable pages and project isolation. Package verification includes preview/sync/apply/retry and archived reviews from an installation directory with spaces.
 
-Independent review identified and corrected shared-lock, UI draft-loss, manifest-envelope, cursor-scope and archive-name defects. Regression checks cover these boundaries. See [context measurements](context-measurements.md) for measured bytes, calls and tradeoffs. Native installed-host sizing, message delivery and tool presentation remain separate from local browser/build/protocol verification.
+See [verification](validation-0.5.0.md) for build and host evidence and [history](history/README.md) for earlier measurements and review outcomes. Native installed-host sizing, message delivery and tool presentation require their own checks.
 
-
-Version **0.3.0** separates review history by physical change directory identity (device, inode, birth time) and original change ID. In-place edits and normal renames preserve that identity. SpecPlanner records an explicit association after an archive, including copy/remove operations. Creating a new directory with the same name creates a new history. Direct file edits keep SHA-256 content revisions. Old panel drafts and stale archive previews cannot target a replacement directory.
+Review history uses physical change directory identity (device, inode, birth time) and original change ID. In-place edits and normal renames preserve that identity. SpecPlanner records an explicit association after an archive, including copy/remove operations. Creating a new directory with the same name creates a new history. Direct file edits keep SHA-256 content revisions. Old panel drafts and stale archive previews cannot target a replacement directory.
 
 Legacy `documents/` records remain intact. The first unambiguous read records an immutable owner; concurrent reads agree on that owner. A known archive's authoritative original ID takes precedence over its date-prefixed filename. Ambiguous pre-existing reuse stops with an ownership error instead of silently attaching old comments to new work. Only comments count toward review inspection limits; retained revision snapshots are not scanned as comments.
 

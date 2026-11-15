@@ -1,5 +1,7 @@
 # SpecPlanner 0.4.0 verification
 
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+
 Date: 2026-11-15. Local Node: 26.10.0. Installed Orca: 1.4.259. No commit, public release, or remote publication was created.
 
 ## Delivered behavior
@@ -50,4 +52,4 @@ No dependency version changed for dual-host support. Pinned OpenSpec 1.14.2 and 
 
 The current native bridge holds transient transfers in memory. A worker restart during an operation reports failure or an unknown outcome; inspect the saved revision before retrying. Saved boards, document histories and immutable workspace bindings survive. Old closed-panel binding records remain in Orca's private plugin storage; automatic retention cleanup is not implemented. Multiple chats using the same canonical repository intentionally share planning data.
 
-The final independent review found no remaining Required or Critical issues after the per-script size fix. Token-efficiency contracts and their fixture measurements are unchanged from [0.3](validation-0.3.0.md). See [the README](../README.md) for current installation instructions and supported behavior.
+The final independent review found no remaining Required or Critical issues after the per-script size fix. Token-efficiency contracts and their fixture measurements are unchanged from [0.3](validation-0.3.0.md). See [the README](../../README.md) for current installation instructions and supported behavior.

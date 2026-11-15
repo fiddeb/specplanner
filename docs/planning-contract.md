@@ -45,9 +45,7 @@ Inventories return metadata. Documents, instructions and boards support revision
 
 `planning_instructions` takes neither `id` nor `artifact` for shared guidance, or both for official artifact or apply/archive operation instructions. Whole-response revisions include workspace identity, requested artifact or operation and policy. `knownContextRevision` reuses the exact project context across phases; phase-specific instructions, templates, rules and operation guidance remain present. `knownWritingPolicyRevision` reuses the complete policy across phases.
 
-`read_board` returns `cacheRevision`, separate from its numeric saved revision. Pass it as `knownRevision` for conditional reads. Workspace identity and board bytes are part of that token, so another project's equal numeric revision cannot suppress its scene.
-
-`read_document` and archived `read_project_document` return comment fields in full up to 512 UTF-16 units each. Longer fields carry `textPage` or `quotePage` with their total length and continuation. Read the same tool with `commentId`, `commentField`, `offset` and that field's `expectedRevision` to recover the exact original. `expectedIdentity` guards change replacement. Text pagination remains independent from comment pagination. The UI reconstructs every field before showing it; an agent can retrieve the selected evidence it needs. Storage never truncates comments or quotes.
+The [context contracts](closeout-and-context.md#context-contracts) define board cache identity, exact comment-field pagination, size limits and continuation arguments. The panel reconstructs complete originals; agents can retrieve the selected evidence they need. Reuse reduces repeated payloads without removing source content.
 
 ## Readiness and limits
 

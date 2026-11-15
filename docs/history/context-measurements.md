@@ -1,5 +1,7 @@
 # Context measurements: 0.1.8 and 0.2.0
 
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+
 Measurements count actual UTF-8 bytes in JSON-serialized MCP call results, including content and structuredContent. They are response-size measurements, not token counts or universal model-context savings. Host serialization and tokenization can differ. Requests, transport headers, browser rendering and implementation execution are excluded. Tool discovery is reported separately.
 
 Both runs generate the same disposable synthetic corpus: 30 active changes with completed checklists and saved verification, 24 new capabilities absent from baseline specs, and 60 archived documents. The supplied production example repository was not opened or modified. The baseline starts the installed 0.1.8 server read-only; the new run uses the source server. Each receives explicit temporary workspace paths and private temporary storage.
@@ -27,6 +29,6 @@ node --import tsx scripts/measure-context.ts before /absolute/path/to/0.1.8/dist
 node --import tsx scripts/measure-context.ts after
 ```
 
-Raw per-call results: [before](context-before.json), [after](context-after.json). The corpus and call sequence are defined in [measure-context.ts](../scripts/measure-context.ts). Temporary projects are deleted after each run. Counts vary if descriptions/contracts change; rerun after modifying them. The raw records contain no production documents, comments, credentials or local workspace paths.
+Raw per-call results: [before](context-before.json), [after](context-after.json). The source repository's `scripts/measure-context.ts` defines the corpus and call sequence; development scripts are not shipped in the installed package. Temporary projects are deleted after each run. Counts vary if descriptions/contracts change; rerun after modifying them. The raw records contain no production documents, comments, credentials or local workspace paths.
 
 The chosen scope avoids a workspace-wide semantic cache: every read observes files again, cursor revisions detect changed lists, and comments have their own revision. This spends filesystem/CLI work and more targeted round trips to reduce repeated context. Large files and trees fail with explicit inspection limits rather than being silently shortened. Native-host tool presentation and cache refresh remain unverified; protocol byte counts do not establish installed-host behavior.
