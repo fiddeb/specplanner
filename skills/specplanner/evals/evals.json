@@ -1,0 +1,17 @@
+[
+  {
+    "query": "Shorten this SpecPlanner plan without changing what we agreed.",
+    "input": "Retry network failures at most three times using the original request ID. Never retry invalid credentials. A timeout may have committed remotely; the owner has not selected a reconciliation strategy. Existing prose says 'leverage a robust and seamless retry mechanism'.",
+    "expected_behavior": ["Removes filler without weakening limits or prohibitions", "Preserves the timeout ambiguity as blocking and does not invent a strategy", "Does not invent design choices, task identifiers or evidence", "Does not claim completeness from validation alone"]
+  },
+  {
+    "query": "Turn this accepted review into the change's design, specification and tasks.",
+    "input": "Original design stores jobs in memory to avoid disk latency. Accepted user comment: 'Vi startar om workers vid uppgradering. Bekräftade jobb får inte försvinna.' No storage technology or latency budget was selected.",
+    "expected_behavior": ["Writes planning artifacts in English and preserves the Swedish original as evidence", "Retains superseded rationale and explains why durability is needed", "Adds observable durability scenarios and linked tasks", "Does not invent a selected database or latency budget", "Makes accepted decisions recoverable from repository artifacts rather than private comments"]
+  },
+  {
+    "query": "Tasks are checked. Is this change ready to archive?",
+    "input": "The spec requires persisted inputs before acknowledgement. Design chooses one-host SQLite storage. Tasks are checked, but the implementation stores inputs in memory. A log says unit tests pass and contains no restart test.",
+    "expected_behavior": ["Reports implementation drift and insufficient durability evidence", "Does not archive from checkboxes or a generic passing log", "Names the missing acceptance check and required reconciliation", "Does not rewrite the requirement to bless the implementation"]
+  }
+]

@@ -1,10 +1,23 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { OpenSpecWorkspace, changeId } from "./openspec.js";
-import { DocumentStore } from "./document-store.js";
+import { DocumentStore, type ReviewComment } from "./document-store.js";
 import { ArchiveService } from "./archive.js";
+import { ReviewHistory } from "./review-history.js";
 import { digest, filesUnder, page, relativeFile, textPage, type PageInput, type TextInput } from "./context.js";
-export type DocumentReadInput = TextInput & { knownCommentsRevision?: string; commentsCursor?: string; commentsLimit?: number; archiveName?: string };
+export type DocumentReadInput = TextInput & { expectedIdentity?: string; knownCommentsRevision?: string; commentsCursor?: string; commentsLimit?: number; archiveName?: string; commentId?: string; commentField?: "text" | "quote" };
+
+function commentPreview(comment: ReviewComment, scope: string) {
+  const preview: ReviewComment & { textPage?: Omit<ReturnType<typeof textPage>, "content">; quotePage?: Omit<ReturnType<typeof textPage>, "content"> } = { ...comment };
+  for (const field of ["text", "quote"] as const) {
+    // Bound review payloads even when a comment selects an entire 1 MB document.
+    if (comment[field].length <= 512) continue;
+    const { content, ...continuation } = textPage(comment[field], { limit: 512 }, `${scope}/${comment.id}/${field}`);
+    preview[field] = content!;
+    preview[`${field}Page`] = continuation;
+  }
+  return preview;
+}
 
 export class ContextReader {
   constructor(readonly workspace: OpenSpecWorkspace, readonly data: string) {}
@@ -20,10 +33,8 @@ export class ContextReader {
     return { id, documents: page(files, input, await this.scope(`change/${id}`)), review: await this.reviews(id, files.map(file => file.path)), next: "Fetch selected files with read_change_file, or read_document for Markdown with exact review comments. Content is never included in this manifest." };
   }
   async reviews(id: string, paths: string[]) {
-    const files = await filesUnder(join(this.data, `workspace-${(await this.workspace.identity()).id}`, "documents"));
-    const prefixes = paths.map(path => `${digest(`${id}/${path}`)}/comments/`);
-    const comments = files.filter(file => prefixes.some(prefix => file.path.startsWith(prefix)));
-    return { comments: comments.length, revision: digest(JSON.stringify([await this.scope(`reviews/${id}`), comments])) };
+    const comments = await new ReviewHistory(this.workspace, this.data).comments(id, paths);
+    return { comments: comments.length, revision: digest(JSON.stringify([await this.scope(`reviews/${id}`), await new ReviewHistory(this.workspace, this.data).generation(id), comments])) };
   }
   async file(id: string, path: string, input: TextInput) {
     const root = await this.workspace.checkTree(); changeId(id); relativeFile(path);
@@ -41,13 +52,25 @@ export class ContextReader {
     const archived = /^changes\/archive\/([^/]+)\/(.+\.md)$/.exec(path);
     if (archived) {
       const id = await new ArchiveService(this.workspace, this.data).originalChange(archived[1]);
-      if (id) return { ...await this.document(id, archived[2], { ...input, archiveName: archived[1] }), path, originalChangeId: id };
+      if (id) return { ...await (input.commentId || input.commentField ? this.comment(id, archived[2], { ...input, archiveName: archived[1] }) : this.document(id, archived[2], { ...input, archiveName: archived[1] })), path, originalChangeId: id };
     }
+    if (input.commentId || input.commentField) throw new Error("Use read_document with the original change id and archiveName to read this review.");
     return { path, ...textPage(document.content, input, await this.scope(`project/${path}`)), reviewHistory: archived ? "Unknown original change ID. Use read_document with the original id and archiveName to retrieve retained comments." : undefined };
+  }
+  async comment(id: string, path: string, input: DocumentReadInput) {
+    if (!input.commentId || !input.commentField) throw new Error("Provide both commentId and commentField to read original review text.");
+    const document = await new DocumentStore(this.workspace, this.data).read(id, path, input.archiveName);
+    if (input.expectedIdentity && input.expectedIdentity !== document.identity) throw new Error("Change identity changed during reading. Reload the document.");
+    const scope = await this.scope(`document/${id}/${document.identity}/${input.archiveName ?? "active"}/${path}`);
+    const comment = document.comments.find(item => item.id === input.commentId);
+    if (!comment) throw new Error("Comment does not belong to this document and change identity.");
+    return { path, identity: document.identity, commentId: comment.id, commentField: input.commentField,
+      ...textPage(comment[input.commentField], input, `${scope}/${comment.id}/${input.commentField}`) };
   }
   async document(id: string, path: string, input: DocumentReadInput) {
     const document = await new DocumentStore(this.workspace, this.data).read(id, path, input.archiveName);
-    const scope = await this.scope(`document/${id}/${input.archiveName ?? "active"}/${path}`);
+    if (input.expectedIdentity && input.expectedIdentity !== document.identity) throw new Error("Change identity changed during reading. Reload the document.");
+    const scope = await this.scope(`document/${id}/${document.identity}/${input.archiveName ?? "active"}/${path}`);
     const scopePrefix = `${digest(scope)}:`;
     const commentsRevision = `${scopePrefix}${digest(JSON.stringify(document.comments))}`;
     const sameScope = input.knownCommentsRevision?.startsWith(scopePrefix);
@@ -55,7 +78,7 @@ export class ContextReader {
     const commentsUnchanged = !input.commentsCursor && input.knownCommentsRevision === commentsRevision;
     const content = textPage(document.content, { ...input, knownRevision: contentUnchanged ? document.revision : undefined }, scope, document.revision);
     const { items, ...commentsPage } = page(document.comments, { cursor: input.commentsCursor, limit: input.commentsLimit }, scope);
-    return { path, ...content, unchanged: contentUnchanged && commentsUnchanged, contentUnchanged, commentsUnchanged, commentsRevision,
-      comments: commentsUnchanged ? undefined : items, commentsPage: commentsUnchanged ? { ...commentsPage, hasMore: false, nextCursor: null } : commentsPage };
+    return { path, identity: document.identity, ...content, unchanged: contentUnchanged && commentsUnchanged, contentUnchanged, commentsUnchanged, commentsRevision,
+      comments: commentsUnchanged ? undefined : items.map(comment => commentPreview(comment, scope)), commentsPage: commentsUnchanged ? { ...commentsPage, hasMore: false, nextCursor: null } : commentsPage };
   }
 }

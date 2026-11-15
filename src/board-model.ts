@@ -18,3 +18,8 @@ export const proposalSchema = z.object({
   summary: z.string().min(1).max(4000), scene: sceneSchema,
 });
 export type BoardProposal = z.infer<typeof proposalSchema>;
+export const proposalSummarySchema = proposalSchema.omit({ scene: true }).extend({ elementCount: z.number().int().nonnegative() });
+export type ProposalSummary = z.infer<typeof proposalSummarySchema>;
+export function proposalSummary({ id, baseRevision, summary, scene }: BoardProposal): ProposalSummary {
+  return { id, baseRevision, summary, elementCount: scene.elements.length };
+}

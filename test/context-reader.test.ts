@@ -38,7 +38,7 @@ test("document and comment conditional reads are independent; external edits can
   const known = { knownRevision: first.revision, knownCommentsRevision: first.commentsRevision };
   const unchanged = await reader.document("delivery", "proposal.md", known);
   assert.equal(unchanged.unchanged, true); assert.equal(unchanged.content, undefined); assert.equal(unchanged.comments, undefined);
-  const comment = await documents.comment("delivery", "proposal.md", first.revision, 0, 0, "Behåll alla krav, även undantagen.");
+  const comment = await documents.comment("delivery", "proposal.md", first.revision, 0, 0, "Behåll alla krav, även undantagen.", first.identity);
   const commented = await reader.document("delivery", "proposal.md", known);
   assert.equal(commented.unchanged, false); assert.equal(commented.contentUnchanged, true); assert.equal(commented.content, undefined);
   assert.deepEqual(commented.comments, [comment]);
@@ -57,12 +57,18 @@ test("text and comment pagination reconstruct exact originals and reject stale p
   const first = await reader.document("delivery", "proposal.md", { limit: 5 });
   assert.equal(first.hasMore, true); assert.equal(first.nextOffset, 5); assert.equal(first.total, content.length);
   await assert.rejects(reader.document("delivery", "proposal.md", { offset: 5 }), /missing expectedRevision/);
-  for (let i = 0; i < 23; i++) await store.comment("delivery", "proposal.md", first.revision, i, i + 1, `Original review comment ${i}`);
-  const call = async (_tool: string, args: Record<string, unknown>) => ({ result: await reader.document("delivery", "proposal.md", args) });
+  for (let i = 0; i < 23; i++) await store.comment("delivery", "proposal.md", first.revision, i, i + 1, `Original review comment ${i}`, first.identity);
+  let transferredComments = 0;
+  const call = async (_tool: string, args: Record<string, unknown>) => {
+    const result = await reader.document("delivery", "proposal.md", args);
+    transferredComments += result.comments?.length ?? 0;
+    return { result };
+  };
   const full = await fullText(call, "read_document", { id: "delivery", path: "proposal.md" });
   assert.equal(full.content, content); assert.equal(full.comments.length, 23);
+  assert.equal(transferredComments, 23, "Text pages must not resend comments already received");
   const comments = await reader.document("delivery", "proposal.md", { commentsLimit: 1 });
-  await store.comment("delivery", "proposal.md", first.revision, 0, 0, "A new concurrent comment");
+  await store.comment("delivery", "proposal.md", first.revision, 0, 0, "A new concurrent comment", first.identity);
   await assert.rejects(reader.document("delivery", "proposal.md", { commentsCursor: comments.commentsPage.nextCursor! }), /Listing changed/);
   const file = await reader.file("delivery", "verification.md", {});
   assert.equal((await reader.file("delivery", "verification.md", { knownRevision: file.revision })).unchanged, true);
@@ -82,6 +88,28 @@ test("equal document bytes and names across projects never reuse another workspa
   assert.equal(result.unchanged, false); assert.equal(result.content, original.content);
   const list = await reader.change("delivery", { limit: 1 });
   await assert.rejects(second.change("delivery", { cursor: list.documents.nextCursor! }), /another workspace/);
+}));
+
+test("large comment selections stay bounded and exact originals survive field pagination and external edits", () => fixture(async ({ workspace, data, change, put }) => {
+  await change("delivery");
+  const content = "Keep every accepted input.\n".repeat(35000);
+  await put("changes/delivery/proposal.md", content);
+  const reader = new ContextReader(workspace, data), store = new DocumentStore(workspace, data);
+  const original = await store.read("delivery", "proposal.md");
+  const comment = await store.comment("delivery", "proposal.md", original.revision, 0, content.length, "Behåll kraven och undantagen 🌍. ".repeat(200), original.identity);
+  const preview = await reader.document("delivery", "proposal.md", { limit: 1, commentsLimit: 1 });
+  assert.ok(Buffer.byteLength(JSON.stringify(preview)) < 6000);
+  assert.equal(preview.comments![0].quote.length, 512);
+  assert.equal(preview.comments![0].quotePage!.total, content.length);
+  const quoteArgs = { commentId: comment.id, commentField: "quote" as const };
+  await assert.rejects(reader.comment("delivery", "proposal.md", { ...quoteArgs, offset: 512 }), /expectedRevision/);
+  await assert.rejects(reader.comment("delivery", "proposal.md", { ...quoteArgs, offset: 512, expectedRevision: preview.comments![0].textPage!.revision }), /changed/);
+  await assert.rejects(reader.comment("delivery", "proposal.md", { ...quoteArgs, expectedIdentity: "0".repeat(64) }), /identity/);
+  await put("changes/delivery/proposal.md", "# Revised document\n");
+  const full = await fullText(async (_tool, args) => ({ result: args.commentId ? await reader.comment("delivery", "proposal.md", args) : await reader.document("delivery", "proposal.md", args) }), "read_document", {});
+  assert.equal(full.content, "# Revised document\n");
+  assert.deepEqual(full.comments, [comment]);
+  assert.equal((await store.read("delivery", "proposal.md")).comments[0].quote, content);
 }));
 
 test("real MCP results are compact, instructions support conditional reads, and panel page collection works", () => fixture(async ({ workspace, data, change, put }) => {
@@ -110,10 +138,13 @@ test("real MCP results are compact, instructions support conditional reads, and 
     assert.deepEqual((await call("planning_instructions", { id: "delivery", artifact: "proposal", knownRevision: instructions.revision })).result, { revision: instructions.revision, unchanged: true });
     const nextArtifact = (await call("planning_instructions", { id: "delivery", artifact: "design", knownWritingPolicyRevision: instructions.writingPolicyRevision })).result as { template: string; specplannerWritingPolicy: { unchanged: boolean; instructions?: string } };
     assert.ok(nextArtifact.template); assert.equal(nextArtifact.specplannerWritingPolicy.unchanged, true); assert.equal(nextArtifact.specplannerWritingPolicy.instructions, undefined);
-    const status = (await call("change_status", { id: "delivery" })).result as { revision: string; implementation: { status: string } };
+    await put("changes/delivery/tasks.md", "- [x] Verified implementation\n- [ ]\n");
+    const status = (await call("change_status", { id: "delivery" })).result as { revision: string; implementation: { status: string }; tasks: { total: number; completed: number; remaining: number; status: string } };
     assert.equal(status.implementation.status, "unknown");
+    assert.equal(status.tasks.total, 2); assert.equal(status.tasks.completed, 1);
+    assert.equal(status.tasks.remaining, 1); assert.equal(status.tasks.status, "incomplete");
     const document = await new DocumentStore(workspace, data).read("delivery", "proposal.md");
-    await new DocumentStore(workspace, data).comment("delivery", "proposal.md", document.revision, 0, 0, "New review");
+    await new DocumentStore(workspace, data).comment("delivery", "proposal.md", document.revision, 0, 0, "New review", document.identity);
     const changed = (await call("change_status", { id: "delivery", knownRevision: status.revision })).result as { unchanged: boolean };
     assert.equal(changed.unchanged, false);
     const missingScope = await client.callTool({ name: "archive_change", arguments: { action: "preview", id: "delivery" } });

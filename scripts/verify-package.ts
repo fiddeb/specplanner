@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { cp, mkdtemp, readFile, mkdir, realpath, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+import { verifyOrcaPackage } from "./verify-orca-package.js";
 
 const root = new URL("../", import.meta.url);
 const manifest = JSON.parse(await readFile(new URL("plugin.json", root), "utf8"));
@@ -13,6 +15,25 @@ const installed = existingInstallation ?? join(temporary, "plugin with spaces");
 const client = new Client({ name: "specplanner-install-test", version: "1.0.0" });
 try {
   if (!existingInstallation) await cp(new URL(`releases/specplanner-${manifest.version}/`, root), installed, { recursive: true });
+  const installedManifest = JSON.parse(await readFile(join(installed, "plugin.json"), "utf8"));
+  assert.equal(installedManifest.skills, "./skills/");
+  const skillDirectory = join(installed, installedManifest.skills, "specplanner");
+  const skill = await readFile(join(skillDirectory, "SKILL.md"), "utf8");
+  assert.match(skill, /^---\nname: specplanner\n/);
+  for (const match of skill.matchAll(/\]\(([^)]+)\)/g)) await readFile(join(skillDirectory, match[1]));
+  assert.match(await readFile(join(skillDirectory, "agents/openai.yaml"), "utf8"), /value: "specplanner"/);
+  assert.match(await readFile(join(installed, "LICENSE"), "utf8"), /MIT License/);
+  const licenseManifest = JSON.parse(await readFile(join(installed, "licenses/manifest.json"), "utf8")) as { name: string; version: string; packagePath: string; notices: { sha256: string }[] }[];
+  const bundledPackages: string[] = JSON.parse(await readFile(new URL("dist/bundled-packages.json", root), "utf8"));
+  if (!existingInstallation) for (const path of bundledPackages) assert.ok(licenseManifest.some(pkg => pkg.packagePath === path), `Missing bundled license: ${path}`);
+  for (const pkg of licenseManifest) {
+    assert.ok(pkg.notices.length > 0, `Missing notices for ${pkg.name}`);
+    for (const notice of pkg.notices) {
+      const text = await readFile(join(installed, "licenses", `${notice.sha256}.txt`), "utf8");
+      assert.equal(createHash("sha256").update(text).digest("hex"), notice.sha256);
+    }
+  }
+  assert.match(await readFile(join(installed, "THIRD_PARTY_NOTICES.txt"), "utf8"), /Excalidraw/);
   const workspace = join(temporary, "repository");
   await mkdir(join(workspace, ".git"), { recursive: true });
   const config = JSON.parse(await readFile(join(installed, "mcp.json"), "utf8"));
@@ -23,6 +44,9 @@ try {
   await client.connect(transport);
   const { tools } = await client.listTools();
   assert.ok(tools.some(tool => tool.name === "open_planner"));
+  const policyOnly = await client.callTool({ name: "planning_instructions", arguments: { workspacePath: workspace } });
+  assert.ok(!policyOnly.isError);
+  assert.equal((policyOnly.structuredContent as { result: { specplannerWritingPolicy: { version: number } } }).result.specplannerWritingPolicy.version, 2);
   const result = await client.callTool({ name: "open_planner", arguments: {} });
   assert.ok(!result.isError);
   assert.equal((result.structuredContent as { connected: boolean }).connected, true);
@@ -49,7 +73,11 @@ try {
   const unchanged = await client.callTool({ name: "read_board", arguments: {} });
   assert.equal((unchanged.structuredContent as { revision: number }).revision, 1);
   const proposals = await client.callTool({ name: "list_board_proposals", arguments: {} });
-  assert.equal((proposals.structuredContent as { result: unknown[] }).result.length, 1);
+  const proposalItems = (proposals.structuredContent as { result: { items: Record<string, unknown>[] } }).result.items;
+  assert.equal(proposalItems.length, 1);
+  assert.equal("scene" in proposalItems[0], false);
+  const selectedProposal = await client.callTool({ name: "read_board_proposal", arguments: { id: proposalId } });
+  assert.deepEqual((selectedProposal.structuredContent as { result: { scene: unknown } }).result.scene, proposedScene);
   const applied = await client.callTool({ name: "apply_board_proposal", arguments: { id: proposalId } });
   assert.ok(!applied.isError);
   assert.equal((applied.structuredContent as { revision: number }).revision, 2);
@@ -70,7 +98,7 @@ try {
     if (name === "planning_instructions") {
       const payload = (result.structuredContent as { result: { template: string; specplannerWritingPolicy: { version: number; instructions: string } } }).result;
       assert.ok(payload.template);
-      assert.equal(payload.specplannerWritingPolicy.version, 1);
+      assert.equal(payload.specplannerWritingPolicy.version, 2);
       assert.match(payload.specplannerWritingPolicy.instructions, /Completeness takes precedence over brevity/);
     }
   }
@@ -86,12 +114,12 @@ try {
   const documentArgs = { id: "sample-plan", path: "proposal.md" };
   const readDocument = await client.callTool({ name: "read_document", arguments: documentArgs });
   assert.ok(!readDocument.isError);
-  const document = (readDocument.structuredContent as { result: { revision: string } }).result;
-  const comment = await client.callTool({ name: "add_comment", arguments: { ...documentArgs, revision: document.revision, start: 2, end: 8, text: "Clarify this section." } });
+  const document = (readDocument.structuredContent as { result: { revision: string; identity: string } }).result;
+  const comment = await client.callTool({ name: "add_comment", arguments: { ...documentArgs, expectedIdentity: document.identity, revision: document.revision, start: 2, end: 8, text: "Clarify this section." } });
   assert.ok(!comment.isError);
-  const edit = await client.callTool({ name: "save_document", arguments: { ...documentArgs, expectedRevision: document.revision, content: "# Updated proposal\n" } });
+  const edit = await client.callTool({ name: "save_document", arguments: { ...documentArgs, expectedIdentity: document.identity, expectedRevision: document.revision, content: "# Updated proposal\n" } });
   assert.ok(!edit.isError);
-  const stale = await client.callTool({ name: "save_document", arguments: { ...documentArgs, expectedRevision: document.revision, content: "Stale edit" } });
+  const stale = await client.callTool({ name: "save_document", arguments: { ...documentArgs, expectedIdentity: document.identity, expectedRevision: document.revision, content: "Stale edit" } });
   assert.equal(stale.isError, true);
   assert.equal((edit.structuredContent as { result: { comments: unknown[] } }).result.comments.length, 1);
   await writeFile(join(workspace, "openspec/changes/sample-plan/tasks.md"), "- [x] Verify isolated package behavior\n");
@@ -121,7 +149,8 @@ try {
   assert.match(html, /SpecPlanner/);
   assert.ok(!/<script[^>]+src=/.test(html.split("<script>")[0]), "UI must not depend on separate script assets");
   console.log("PASS: isolated installation, stdio handshake, tool discovery, tool call, board save/read/conflict handling, official OpenSpec creation/instructions/validation, document editing/comment retention/conflict rejection, proposal review/apply/history, compact inventories, official archive preview/sync/apply/retry, retained archived reviews, and bundled English UI resource.");
-  console.log("Desktop installation and native panel rendering still require verification in the host app.");
+  await verifyOrcaPackage(installed, workspace, join(temporary, "board-data"), client);
+  console.log("Host installation, native rendering and chat delivery are verified separately; these tests use stdio and an Orca host stand-in.");
 } finally {
   await client.close();
   await rm(temporary, { recursive: true, force: true });

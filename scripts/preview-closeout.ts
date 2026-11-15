@@ -10,6 +10,7 @@ import { createServer } from "../src/server.js";
 import { delta } from "../test/closeout-fixture.js";
 
 const directory = await mkdtemp(join(tmpdir(), "specplanner-closeout-preview-"));
+const boardPreview = process.argv.includes("--board");
 const workspacePath = join(directory, "repository");
 process.env.SPECPLANNER_DATA_DIR = join(directory, "private-data");
 await mkdir(join(workspacePath, ".git"), { recursive: true });
@@ -26,17 +27,24 @@ const server = createServer("<html></html>");
 const client = new Client({ name: "closeout-preview", version: "1" });
 const [ct, st] = InMemoryTransport.createLinkedPair();
 await server.connect(st); await client.connect(ct);
+if (boardPreview) {
+  for (let i = 0; i < 21; i++) {
+    const result = await client.callTool({ name: "propose_board", arguments: { workspacePath, baseRevision: 0, summary: `Review proposal ${i + 1}`, scene: { elements: [{ id: `step-${i}`, type: "rectangle", x: 100, y: 100, width: 240, height: 120, roughness: 0 }] } } });
+    if (result.isError) throw new Error(JSON.stringify(result));
+  }
+}
 await build({ stdin: { contents: `
 import React from "react";
 import { createRoot } from "react-dom/client";
 import { Plan } from "./src/plan.tsx";
+import { Board } from "./src/board.tsx";
 import "./src/panel.css";
 const app = {sendMessage:async()=>({isError:true}),callServerTool: async params => {
   const response = await fetch("/tool", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(params)});
   if(!response.ok) throw new Error(await response.text());
   return await response.json();
 }};
-createRoot(document.getElementById("root")).render(<main className="planner"><header>SpecPlanner · Disposable MCP closeout preview</header><div className="plan-view"><Plan app={app}/></div></main>);`, resolveDir: process.cwd(), loader: "tsx" }, outfile: join(directory, "preview.js"), bundle: true, platform: "browser", format: "iife", define: { "process.env.NODE_ENV": '"production"' } });
+createRoot(document.getElementById("root")).render(<main className="planner"><header>SpecPlanner · Disposable MCP preview</header>${boardPreview ? '<Board app={app} theme="light"/>' : '<div className="plan-view"><Plan app={app}/></div>'}</main>);`, resolveDir: process.cwd(), loader: "tsx" }, outfile: join(directory, "preview.js"), bundle: true, platform: "browser", format: "iife", conditions: ["production"], loader: { ".woff2": "dataurl", ".woff": "dataurl", ".png": "dataurl", ".svg": "dataurl" }, define: { "process.env.NODE_ENV": '"production"' } });
 const js = await readFile(join(directory, "preview.js")); const css = await readFile(join(directory, "preview.css"));
 const http = httpServer(async (request, response) => {
   try {

@@ -12,7 +12,7 @@ test("MCP client can discover planner, invoke it, and load its UI resource", asy
   await client.connect(clientTransport);
   try {
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 22);
+    assert.equal(tools.length, 23);
     assert.deepEqual((tools.find(tool => tool.name === "apply_board_proposal")!._meta as { ui: { visibility: string[] } }).ui.visibility, ["app"]);
     assert.deepEqual((tools.find(tool => tool.name === "propose_board")!._meta as { ui: { visibility: string[] } }).ui.visibility, ["model"]);
     assert.equal(tools[0].name, "open_planner");

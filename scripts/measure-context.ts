@@ -71,6 +71,6 @@ try {
   const instructions = (await call("drafting instructions (separate)", "planning_instructions", { id: "change-00", artifact: "proposal" })).result;
   await call("drafting instructions (separate)", "planning_instructions", { id: "change-00", artifact: "proposal", ...(mode === "after" ? { knownRevision: instructions.revision } : {}) });
   const instructionRows = rows.slice(workflowRows.length);
-  const report = { mode, baseline: mode === "before" ? "installed 0.1.8 server (read-only)" : "0.2.0 source server", fixture: { activeChanges: 30, newCapabilities: 24, archivedDocuments: 60 }, discoveryBytes, rows: workflowRows, calls: workflowRows.length, totalBytes: workflowRows.reduce((sum, row) => sum + row.bytes, 0), instructions: { calls: instructionRows.length, totalBytes: instructionRows.reduce((sum, row) => sum + row.bytes, 0), rows: instructionRows } };
+  const report = { mode, baseline: mode === "before" ? "installed 0.1.8 server (read-only)" : "current source server", fixture: { activeChanges: 30, newCapabilities: 24, archivedDocuments: 60 }, discoveryBytes, rows: workflowRows, calls: workflowRows.length, totalBytes: workflowRows.reduce((sum, row) => sum + row.bytes, 0), instructions: { calls: instructionRows.length, totalBytes: instructionRows.reduce((sum, row) => sum + row.bytes, 0), rows: instructionRows } };
   console.log(JSON.stringify(report, null, 2));
 } finally { await client.close(); await server.close(); await rm(directory, { recursive: true, force: true }); }

@@ -1,7 +1,8 @@
 import { link, mkdir, readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { join } from "node:path";
-import { boardSchema, emptyBoard, sceneSchema, proposalSchema, type BoardProposal, type Board, type Scene } from "./board-model.js";
+import { boardSchema, emptyBoard, sceneSchema, proposalSchema, proposalSummary, type Board, type Scene } from "./board-model.js";
+import { page, type PageInput } from "./context.js";
 
 export class RevisionConflict extends Error {
   constructor() { super("The board has changed. Reload the saved version before saving again."); }
@@ -26,17 +27,24 @@ export class BoardStore {
     finally { await unlink(temporary); }
     return proposal;
   }
-  async proposals(): Promise<BoardProposal[]> {
+  async proposals(input: PageInput = {}) {
     const directory = join(this.directory, "proposals");
     let files: string[];
     try { files = await readdir(directory); }
-    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return []; throw error; }
-    return Promise.all(files.filter(file => file.endsWith(".json")).map(async file => proposalSchema.parse(JSON.parse(await readFile(join(directory, file), "utf8")))));
+    catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") files = []; else throw error; }
+    const selection = page(files.filter(file => /^[a-f0-9-]{36}\.json$/.test(file)).sort(), input, `board-proposals:${this.directory}`);
+    const items = [];
+    for (const name of selection.items) items.push(proposalSummary(await this.proposal(name.slice(0, -5))));
+    return { ...selection, items };
   }
-  async applyProposal(id: string) {
+  async proposal(id: string) {
     if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error("Invalid proposal ID.");
     const proposal = proposalSchema.parse(JSON.parse(await readFile(join(this.directory, "proposals", `${id}.json`), "utf8")));
     if (proposal.id !== id) throw new Error("Proposal ID mismatch.");
+    return proposal;
+  }
+  async applyProposal(id: string) {
+    const proposal = await this.proposal(id);
     return this.save(proposal.baseRevision, proposal.scene);
   }
   async read(): Promise<Board> {

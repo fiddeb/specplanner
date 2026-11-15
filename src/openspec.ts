@@ -1,9 +1,9 @@
-import { writingPolicy } from "./writing-policy.js";
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, realpath } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+import { openSpecCommand } from "./openspec-command.js";
+import { taskProgress } from "./openspec-tasks.js";
 
 const idPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export function changeId(value: string) {
@@ -35,21 +35,19 @@ export class OpenSpecWorkspace {
     };
     try { await visit(join(root, "openspec")); }
     catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    const entries = await readdir(join(root, "openspec"), { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return []; throw error; });
+    const local = entries.some(entry => entry.isDirectory() && ["changes", "specs"].includes(entry.name));
+    if (!local && entries.some(entry => ["config.yaml", "config.yml"].includes(entry.name))) {
+      // Check before mkdir: adding changes/ would silently override a store-only declaration.
+      const context = await openSpecCommand(this.cli, root, ["context", "--json"]) as { root?: { path?: string } };
+      if (context.root?.path !== root) throw new Error("This project selects an external OpenSpec store. Select that store's repository explicitly as workspacePath; SpecPlanner will not create a competing local planning tree.");
+    }
     return root;
   }
   async command(args: string[], allowInvalid = false) {
     const cwd = await this.checkTree();
     if (!(await lstat(join(cwd, "openspec", "changes"))).isDirectory()) throw new Error("A local OpenSpec changes directory is required.");
-    return await new Promise<unknown>((resolve, reject) => {
-      execFile(process.execPath, [this.cli, ...args], {
-        cwd, timeout: 30000, maxBuffer: 2_000_000,
-        env: { PATH: process.env.PATH, HOME: process.env.HOME, OPENSPEC_TELEMETRY: "0", DO_NOT_TRACK: "1", CI: "1", NO_COLOR: "1" },
-      }, (error, stdout, stderr) => {
-        if (error && (!allowInvalid || error.code !== 1)) return reject(new Error(stderr.trim() || error.message));
-        try { resolve(JSON.parse(stdout)); }
-        catch { reject(new Error(stderr.trim() || "OpenSpec did not return valid JSON.")); }
-      });
-    });
+    return openSpecCommand(this.cli, cwd, args, allowInvalid);
   }
   async list() {
     const root = await this.checkTree();
@@ -93,30 +91,14 @@ export class OpenSpecWorkspace {
     return this.command(["new", "change", changeId(id), "--schema", "spec-driven", "--json"]); }
   async validate(id: string) { return this.command(["validate", changeId(id), "--type", "change", "--strict", "--json", "--no-interactive"], true); }
   async instructions(id: string, artifact: string) {
-    if (!["proposal", "design", "specs", "tasks"].includes(artifact)) throw new Error("Unsupported planning artifact.");
+    if (!["proposal", "design", "specs", "tasks", "apply", "archive"].includes(artifact)) throw new Error("Unsupported planning artifact or operation.");
     const official = await this.command(["instructions", artifact, "--change", changeId(id), "--json"]);
     if (!official || typeof official !== "object" || Array.isArray(official)) throw new Error("Unexpected OpenSpec instruction format.");
-    return { ...official, specplannerWritingPolicy: writingPolicy };
+    return official as Record<string, unknown>;
   }
   async taskStatus(id: string) {
-    changeId(id);
     const root = await this.checkTree();
-    // Pinned official parser, loaded from the shipped CLI layout (also present in releases).
-    const tasks = await import(new URL("../dist/utils/task-progress.js", pathToFileURL(this.cli)).href) as {
-      getTaskProgressDetailForChange: (directory: string, id: string, root: string) => Promise<{ total: number; completed: number; unreadable: string[] }>;
-      resolveTaskFilesForChange: (directory: string, root: string) => string[];
-      parseTaskLines: (content: string) => { done: boolean; description: string }[];
-    };
-    const directory = join(root, "openspec", "changes", id);
-    const progress = await tasks.getTaskProgressDetailForChange(join(root, "openspec", "changes"), id, root);
-    const files = tasks.resolveTaskFilesForChange(directory, root);
-    const pending: { path: string; description: string }[] = [];
-    for (const file of files.length ? files : [join(directory, "tasks.md")]) {
-      let content: string;
-      try { content = await readFile(file, "utf8"); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") continue; throw error; }
-      pending.push(...tasks.parseTaskLines(content).filter(task => !task.done).map(task => ({ path: file.slice(directory.length + 1), description: task.description })));
-    }
-    return { ...progress, status: progress.unreadable.length ? "unknown" : progress.total === 0 ? "unknown" : progress.completed === progress.total ? "complete" : "incomplete", pending };
+    return taskProgress(await this.instructions(id, "apply"), join(root, "openspec", "changes", changeId(id)));
   }
   async read(id: string) {
     const root = await this.checkTree();

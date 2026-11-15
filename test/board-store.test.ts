@@ -43,13 +43,31 @@ test("proposals persist without changing the board and apply only once against t
   const proposal = await store.propose(0, "Add the planning step", scene);
   assert.equal((await store.read()).revision, 0);
   const restarted = new BoardStore(dir);
-  assert.deepEqual(await restarted.proposals(), [proposal]);
+  assert.deepEqual((await restarted.proposals()).items, [{ id: proposal.id, baseRevision: 0, summary: proposal.summary, elementCount: 1 }]);
+  assert.deepEqual(await restarted.proposal(proposal.id), proposal);
   assert.deepEqual((await restarted.applyProposal(proposal.id)).scene, scene);
   await assert.rejects(store.applyProposal(proposal.id), RevisionConflict);
   assert.deepEqual((await store.readRevision(0)).scene.elements, []);
   assert.deepEqual((await store.readRevision(1)).scene, scene);
   await assert.rejects(store.readRevision(999));
   await assert.rejects(store.applyProposal("../outside"));
+ } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test("proposal pages contain only metadata and reject stale or foreign cursors", async () => {
+ const dir = await mkdtemp(join(tmpdir(), "specplanner-proposal-pages-"));
+ try {
+  const store = new BoardStore(join(dir, "a"));
+  for (let i = 0; i < 3; i++) await store.propose(0, `Proposal ${i}`, scene);
+  const first = await store.proposals({ limit: 2 });
+  assert.equal(first.total, 3); assert.equal(first.hasMore, true);
+  assert.ok(first.items.every(item => !("scene" in item)));
+  const last = await store.proposals({ cursor: first.nextCursor! });
+  assert.equal(last.items.length, 1);
+  assert.equal(new Set([...first.items, ...last.items].map(item => item.id)).size, 3);
+  await assert.rejects(new BoardStore(join(dir, "b")).proposals({ cursor: first.nextCursor! }), /another workspace/);
+  await store.propose(0, "New proposal", scene);
+  await assert.rejects(store.proposals({ cursor: first.nextCursor! }), /Listing changed/);
  } finally { await rm(dir, { recursive: true, force: true }); }
 });
 

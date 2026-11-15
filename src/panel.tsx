@@ -2,8 +2,9 @@ import { bindWorkspace } from "./panel-client.js";
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { App, applyDocumentTheme, applyHostStyleVariables, applyHostFonts } from "@modelcontextprotocol/ext-apps";
-import { Plan } from "./plan.js";
-import { Board } from "./board.js";
+import { PlannerShell } from "./planner-shell.js";
+import { OrcaPlanner } from "./orca-panel.js";
+import type { OrcaFrame } from "./orca-contract.js";
 import "./panel.css";
 
 document.documentElement.dataset.embedded = String(window.parent !== window);
@@ -51,7 +52,6 @@ function Planner() {
   const [workspaceError, setWorkspaceError] = useState("");
   const [pendingWorkspace, setPendingWorkspace] = useState<string>();
   const [selecting, setSelecting] = useState(false);
-  const [tab, setTab] = useState("Board");
   const scoped = useMemo(() => connection && workspacePath !== undefined ? bindWorkspace(connection, workspacePath) : null, [connection, workspacePath]);
   async function chooseWorkspace() {
     if (!connection) return;
@@ -73,7 +73,7 @@ function Planner() {
       setStatus("Preview only · Open through an MCP host to connect");
       return;
     }
-    const app = new App({ name: "SpecPlanner", version: "0.2.0" }, {}, { autoResize: false });
+    const app = new App({ name: "SpecPlanner", version: "0.5.0" }, {}, { autoResize: false });
     const syncTheme = (ctx: ReturnType<App["getHostContext"]>) => {
       if (ctx?.theme) { applyDocumentTheme(ctx.theme); setTheme(ctx.theme); }
       if (ctx?.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
@@ -81,18 +81,17 @@ function Planner() {
     };
     app.onhostcontextchanged = () => syncTheme(app.getHostContext());
     app.ontoolresult = result => {
-      setStatus("Connected to the agent · v0.2.0");
+      setStatus("Connected to the agent · v0.5.0");
       const info = result.structuredContent as { workspacePath?: unknown; connectionRequestId?: string } | undefined;
       if (!initialized.current && info?.connectionRequestId) { setConnectionRequestId(info.connectionRequestId); return; }
       if (!initialized.current && info && (typeof info.workspacePath === "string" || info.workspacePath === null)) {
         initialized.current = true; setWorkspacePath(info.workspacePath as string | null);
       }
     };
-    app.connect().then(() => { syncTheme(app.getHostContext()); setConnection(app); setStatus("Connected to the host · v0.2.0");  }).catch(() => setStatus("No MCP host connected"));
+    app.connect().then(() => { syncTheme(app.getHostContext()); setConnection(app); setStatus("Connected to the host · v0.5.0");  }).catch(() => setStatus("No MCP host connected"));
     return () => { void app.close(); };
   }, []);
-  return <main className={tab === "Board" ? "planner with-board" : "planner"}>
-    <header><span className="eyebrow">SPECPLANNER</span><h1>Room for your next idea.</h1><p>Explore a solution together, from the first sketch to a reviewed plan.</p></header>
+  return <PlannerShell app={scoped} workspacePath={workspacePath} theme={theme} status={status} preview={window.parent === window}>
     {connection && <div className="workspace-context">
       {workspacePath ? <p className="workspace-path">Workspace: {workspacePath}</p> : <>
         <p role="status">{connectingProject ? "Connecting to this chat’s project through Codex…" : "Choose a repository if this chat has no project, or if the automatic connection could not complete."}</p>
@@ -102,16 +101,7 @@ function Planner() {
         {workspaceError && <p role="alert">{workspaceError}</p>}
       </>}
     </div>}
-    <nav aria-label="Planning views">{["Plan", "Board", "Decisions"].map(name => <button key={name} aria-pressed={tab === name} onClick={() => setTab(name)}>{name}</button>)}</nav>
-    <div className="board-view" hidden={tab !== "Board"}>{window.parent === window || scoped ? <Board key={workspacePath ?? "personal"} app={scoped} theme={theme} /> : <p>Connecting to board storage…</p>}</div>
-    <div className="plan-view" hidden={tab !== "Plan"}><Plan key={workspacePath ?? "personal"} app={scoped} /></div>
-    <section hidden={tab !== "Decisions"}>
-      <span className="eyebrow">{tab}</span>
-      <h2>{tab === "Plan" ? "A shared direction" : tab === "Board" ? "Make the idea visible" : "What we agree on"}</h2>
-      <p>{tab === "Plan" ? "Review proposals, design, requirements, and tasks together here." : tab === "Board" ? "The official Excalidraw editor will appear here, with clean lines, rounded boxes, and sans-serif text." : "Keep decisions and open questions connected to the plan here."}</p>
-      <div className="notice">Early prototype · Documents and drawings are not connected yet.</div>
-    </section>
-    <footer role="status">{status}</footer>
-  </main>;
+  </PlannerShell>;
 }
-createRoot(document.getElementById("root")!).render(<Planner />);
+const orca = (window as Window & { orca?: OrcaFrame }).orca;
+createRoot(document.getElementById("root")!).render(orca ? <OrcaPlanner frame={orca} /> : <Planner />);

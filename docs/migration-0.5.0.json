@@ -1,0 +1,26 @@
+{
+  "baseline": {
+    "version": "0.4.1",
+    "openspec": "1.14.2",
+    "serverSha256": "f0e11d9eefe81f995b9579819d106ed130696ead2a23352d295de07604c8d796"
+  },
+  "candidate": {
+    "version": "0.5.0",
+    "openspec": "2.0.0",
+    "serverSha256": "79c9f19c9b4feced264b212264b355858d81adeee558e48fcaaa7b2788d811e3"
+  },
+  "environment": {
+    "node": "v26.10.0",
+    "platform": "darwin",
+    "arch": "arm64"
+  },
+  "result": "pass",
+  "checks": [
+    "baseline create/instructions/strict validation",
+    "candidate validation and operation JSON",
+    "exact board/document/review persistence across process replacement",
+    "stale board write rejected",
+    "candidate reviewed archive and source preservation",
+    "baseline can read candidate archive and retained reviews after rollback"
+  ]
+}

@@ -14,7 +14,7 @@ test("preview is read-only; official archive syncs specs and preserves every ori
   await put("changes/delivery/evidence.bin", Buffer.from([0, 255, 10, 42]));
   const documents = new DocumentStore(workspace, data);
   const original = await documents.read("delivery", "proposal.md");
-  const comment = await documents.comment("delivery", "proposal.md", original.revision, 0, 6, "Behåll underlaget exakt.");
+  const comment = await documents.comment("delivery", "proposal.md", original.revision, 0, 6, "Behåll underlaget exakt.", original.identity);
   const before = await filesUnder(join(root, "openspec"));
   const preview = await archive.preview("delivery");
   assert.equal(preview.blockers.total, 0);
@@ -49,9 +49,9 @@ test("no-delta changes archive without inventing specs and dated names are not p
 
 test("official task parsing catches nested and nonstandard unchecked tasks; nothing archives automatically", () => fixture(async ({ root, archive, put, change }) => {
   await change("unfinished");
-  await put("changes/unfinished/tasks.md", "- [x] Done\n  + [~] Pending nested work\n1. [ ] Pending ordered work\n");
+  await put("changes/unfinished/tasks.md", "- [x] Done\n  + [~] Pending nested work\n1. [ ] Pending ordered work\n- [ ]\n");
   const preview = await archive.preview("unfinished");
-  assert.equal(preview.tasks.total, 3); assert.equal(preview.tasks.remaining, 2);
+  assert.equal(preview.tasks.total, 4); assert.equal(preview.tasks.remaining, 3);
   assert.equal((await archive.inspect(preview.token, "tasks", {})).total, 2);
   await assert.rejects(archive.apply(preview.token, confirmation), /blockers/);
   assert.ok((await readdir(join(root, "openspec/changes"))).includes("unfinished"));
@@ -74,6 +74,19 @@ test("overlaps require explicit order and dependencies must have been archived f
   assert.ok(staleDelta.blockers.total > 0, "An already-added requirement must be reconciled, not silently overwritten");
 }));
 
+test("archive dependency evidence matches original identities, never suffixes or date prefixes", () => fixture(async ({ archive, change, put }) => {
+  await change("release-docs", null);
+  await put("changes/archive/2026-10-01-improve-delivery/proposal.md", "Unrelated change");
+  assert.match((await archive.preview("release-docs", { dependsOn: ["delivery"] })).blockers.items.join(" "), /no archive evidence/);
+  await put("changes/archive/2026-10-01-delivery/proposal.md", "Ambiguous external change");
+  assert.match((await archive.preview("release-docs", { dependsOn: ["delivery"] })).blockers.items.join(" "), /unambiguous/);
+  await change("delivery", null);
+  const preview = await archive.preview("delivery");
+  const receipt = await archive.apply(preview.token, confirmation);
+  assert.equal((await archive.preview("release-docs", { dependsOn: ["delivery"] })).blockers.total, 0);
+  assert.match((await archive.preview("release-docs", { dependsOn: [receipt.destination.split("/").at(-1)!] })).blockers.items.join(" "), /unambiguous/);
+}));
+
 test("a stale MODIFIED delta cannot silently drop newer scenarios", () => fixture(async ({ archive, put, change, root }) => {
   await put("specs/delivery/spec.md", `# Delivery\n\n## Purpose\nRetain accepted task input for reliable processing.\n\n## Requirements\n\n${delta.split("\n").slice(2).join("\n")}\n#### Scenario: Newer guarantee\n- **WHEN** two workers retry\n- **THEN** preserve both inputs\n`);
   await change("stale", delta.replace("ADDED", "MODIFIED"));
@@ -91,7 +104,7 @@ test("external file edits and new review comments invalidate preview tokens", ()
   await assert.rejects(archive.apply(preview.token, confirmation), /changed since preview/);
   preview = await archive.preview("delivery");
   const documents = new DocumentStore(workspace, data), document = await documents.read("delivery", "proposal.md");
-  await documents.comment("delivery", "proposal.md", document.revision, 0, 0, "New unresolved review question");
+  await documents.comment("delivery", "proposal.md", document.revision, 0, 0, "New unresolved review question", document.identity);
   await assert.rejects(archive.apply(preview.token, confirmation), /review comments changed/);
   await assert.rejects(readFile(join(root, "openspec/specs/delivery/spec.md")), /ENOENT/);
 }));
@@ -183,8 +196,8 @@ test("archive blocks concurrent comment publication and document saves during th
   const applying = new ArchiveService(new GatedWorkspace(workspace.root), data).apply(preview.token, confirmation);
   await Promise.race([started.promise, applying.then(() => { throw new Error("CLI gate was not reached"); })]);
   try {
-    await assert.rejects(store.comment("delivery", "proposal.md", document.revision, 0, 0, "Concurrent review"), /write is in progress/);
-    await assert.rejects(store.save("delivery", "proposal.md", document.revision, "Concurrent draft"), /write is in progress/);
+    await assert.rejects(store.comment("delivery", "proposal.md", document.revision, 0, 0, "Concurrent review", document.identity), /write is in progress/);
+    await assert.rejects(store.save("delivery", "proposal.md", document.revision, "Concurrent draft", document.identity), /write is in progress/);
   } finally { resume.resolve(); }
   assert.equal((await applying).outcome, "archived");
 }));
@@ -206,7 +219,7 @@ test("external edits during the CLI are detected and the changed evidence is pre
 test("100-character change IDs preserve readable archived documents and comments", () => fixture(async ({ workspace, data, archive, change }) => {
   const id = "a".repeat(100); await change(id, null);
   const store = new DocumentStore(workspace, data), document = await store.read(id, "proposal.md");
-  const comment = await store.comment(id, "proposal.md", document.revision, 0, 0, "Retain the original review");
+  const comment = await store.comment(id, "proposal.md", document.revision, 0, 0, "Retain the original review", document.identity);
   const preview = await archive.preview(id), result = await archive.apply(preview.token, confirmation);
   assert.equal(result.outcome, "archived");
   const name = result.destination.split("/").at(-1)!; assert.equal(name.length, 111);

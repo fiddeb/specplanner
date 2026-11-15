@@ -1,9 +1,10 @@
-import { cp, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { cp, lstat, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { OpenSpecWorkspace, changeId, archivedChangeName } from "./openspec.js";
+import { OpenSpecWorkspace, changeId } from "./openspec.js";
 import { acquireWorkspaceWrite } from "./workspace-lock.js";
+import { archiveMatchesChange, ReviewHistory } from "./review-history.js";
 import { digest, filesUnder, page, relativeFile, textPage, type FileEntry, type PageInput, type TextInput } from "./context.js";
 
 type SpecDiff = { path: string; before: string | null; after: string | null };
@@ -12,7 +13,7 @@ export type ArchiveOptions = { dependsOn?: string[]; overlapOrder?: string[] };
 type Outcome = { outcome: "archived" | "partial" | "failed"; changed: string[]; remaining: string[]; recovery: string; diagnostic?: unknown; verification?: Verification; inspectionError?: string };
 type Plan = {
   token: string; workspacePath: string; id: string; date: string; destination: string; revision: string;
-  before: FileEntry[]; reviewRevision: string; specs: SpecDiff[]; files: FileEntry[];
+  before: FileEntry[]; reviewRevision: string; reviewGeneration: string; specs: SpecDiff[]; files: FileEntry[];
   status: Awaited<ReturnType<ArchiveService["status"]>>; overlaps: { id: string; paths: string[] }[];
   options: ArchiveOptions; blockers: string[]; cli: unknown; outcome?: Outcome;
 };
@@ -35,9 +36,17 @@ export class ArchiveService {
     if (plan.workspacePath !== (await this.workspace.identity()).path || plan.token !== token) throw new Error("Archive preview belongs to another workspace.");
     return plan;
   }
-  private async reviews() {
-    const files = await filesUnder(join(this.data, `workspace-${(await this.workspace.identity()).id}`, "documents"));
-    return digest(JSON.stringify(files.filter(file => file.path.includes("/comments/"))));
+  private async reviews(files: FileEntry[]) {
+    const changes = new Map<string, string[]>();
+    for (const file of files) {
+      const [folder, id, ...parts] = file.path.split("/");
+      if (folder !== "changes" || id === "archive" || !parts.length) continue;
+      changes.set(id, [...(changes.get(id) ?? []), parts.join("/")]);
+    }
+    const history = new ReviewHistory(this.workspace, this.data);
+    const comments = [];
+    for (const [id, paths] of changes) comments.push({ id, files: await history.comments(id, paths) });
+    return digest(JSON.stringify(comments));
   }
   async status(id: string) {
     changeId(id);
@@ -58,7 +67,9 @@ export class ArchiveService {
     changeId(id);
     const root = await this.workspace.checkTree();
     const before = await filesUnder(join(root, "openspec"));
-    const reviewRevision = await this.reviews();
+    const history = new ReviewHistory(this.workspace, this.data);
+    const reviewGeneration = await history.generation(id);
+    const reviewRevision = await this.reviews(before);
     const files = before.filter(file => file.path.startsWith(`changes/${id}/`)).map(file => ({ ...file, path: file.path.slice(`changes/${id}/`.length) }));
     if (!files.length) throw new Error("Active change does not exist or has no files.");
     const status = await this.status(id);
@@ -78,7 +89,16 @@ export class ArchiveService {
     for (const dependency of options.dependsOn ?? []) {
       changeId(dependency);
       if (dependency === id || (await this.workspace.list()).includes(dependency)) blockers.push(`Dependency is still active: ${dependency}. Complete and archive it first.`);
-      else if (!before.some(file => file.path.startsWith("changes/archive/") && (file.path.split("/")[2] === dependency || file.path.split("/")[2].endsWith(`-${dependency}`)))) blockers.push(`Dependency has no archive evidence: ${dependency}. Resolve it before continuing.`);
+      else {
+        const names = new Set(before.filter(file => file.path.startsWith("changes/archive/")).map(file => file.path.split("/")[2]));
+        let found = false;
+        for (const name of names) {
+          if (!archiveMatchesChange(name, dependency)) continue;
+          const original = await this.originalChange(name);
+          if (original === dependency || (!original && !/^\d{4}-\d{2}-\d{2}-/.test(name) && name === dependency)) found = true;
+        }
+        if (!found) blockers.push(`Dependency has no archive evidence with an unambiguous original identity: ${dependency}. Resolve it before continuing.`);
+      }
     }
     const temporary = await mkdtemp(join(tmpdir(), "specplanner-archive-"));
     let cli: unknown;
@@ -98,8 +118,8 @@ export class ArchiveService {
         if (a?.revision !== b?.revision) specs.push({ path, before: a ? await readFile(join(root, "openspec", path), "utf8") : null, after: b ? await readFile(join(temporary, "openspec", path), "utf8") : null });
       }
     } finally { await rm(temporary, { recursive: true, force: true }); }
-    if (!same(before, await filesUnder(join(root, "openspec"))) || reviewRevision !== await this.reviews()) throw new Error("Files or review comments changed during preview. Retry.");
-    const plan: Plan = { token: randomUUID(), workspacePath: root, id, date: localDate(), destination, revision: digest(JSON.stringify([root, before, reviewRevision, options])), before, reviewRevision, specs, files, status, overlaps, options, blockers, cli };
+    if (!same(before, await filesUnder(join(root, "openspec"))) || reviewGeneration !== await history.generation(id) || reviewRevision !== await this.reviews(before)) throw new Error("Files or review comments changed during preview. Retry.");
+    const plan: Plan = { token: randomUUID(), workspacePath: root, id, date: localDate(), destination, revision: digest(JSON.stringify([root, before, reviewRevision, reviewGeneration, options])), before, reviewRevision, reviewGeneration, specs, files, status, overlaps, options, blockers, cli };
     await this.save(plan);
     return this.summary(plan);
   }
@@ -119,7 +139,7 @@ export class ArchiveService {
   private sectionPage(plan: Plan, section: string, input: PageInput = {}) { return page(this.sectionItems(plan, section), input, this.scope(plan, section)); }
   private summary(plan: Plan) {
     return { token: plan.token, id: plan.id, revision: plan.revision, destination: `openspec/${plan.destination}`, blockers: this.sectionPage(plan, "blockers"),
-      planning: { ...plan.status.planning, artifacts: this.sectionPage(plan, "planningArtifacts") }, tasks: { status: plan.status.tasks.status, total: plan.status.tasks.total, completed: plan.status.tasks.completed, remaining: plan.status.tasks.pending.length },
+      planning: { ...plan.status.planning, artifacts: this.sectionPage(plan, "planningArtifacts") }, tasks: { status: plan.status.tasks.status, total: plan.status.tasks.total, completed: plan.status.tasks.completed, remaining: plan.status.tasks.total - plan.status.tasks.completed },
       implementation: plan.status.implementation, dependencies: { status: plan.options.dependsOn ? "explicit list supplied; review prose dependencies too" : "unknown; inspect proposal/design and supply dependsOn or acknowledge review", declared: plan.options.dependsOn ?? [] },
       files: plan.files.length, evidence: this.sectionPage(plan, "evidence"), deltaSpecs: this.sectionPage(plan, "deltaSpecs"),
       affectedSpecs: this.sectionPage(plan, "specs"), overlaps: this.sectionPage(plan, "overlaps"),
@@ -146,12 +166,18 @@ export class ArchiveService {
     const plan = await this.load(token);
     const root = await this.workspace.checkTree();
     const release = await acquireWorkspaceWrite(this.workspace);
+    const history = new ReviewHistory(this.workspace, this.data);
     try {
       const current = await filesUnder(join(root, "openspec"));
       const sourceExists = await this.exists(join(root, "openspec/changes", plan.id));
       const archived = current.filter(file => file.path.startsWith(`${plan.destination}/`)).map(file => ({ ...file, path: file.path.slice(plan.destination.length + 1) }));
       const specsMatch = plan.specs.every(spec => (current.find(file => file.path === spec.path)?.revision ?? null) === (spec.after === null ? null : digest(spec.after)));
       if (!sourceExists && same(archived, plan.files) && specsMatch) {
+        if (plan.reviewGeneration) {
+          const name = plan.destination.split("/").at(-1)!;
+          if (await history.generation(plan.id, name) !== plan.reviewGeneration) throw new Error("Archived files match but their review identity is unknown or belongs to another change. Preserve the receipt and reconcile history before retrying.");
+          await history.bindArchive(plan.id, name, plan.reviewGeneration);
+        }
         if (plan.outcome?.outcome !== "archived") { plan.outcome = { ...plan.outcome, outcome: "archived", changed: [plan.destination, ...plan.specs.map(spec => spec.path)], remaining: [], recovery: "Recovered completed archive from its exact file fingerprints." }; return await this.persistOutcome(plan); }
         return this.outcomeSummary(plan);
       }
@@ -159,7 +185,7 @@ export class ArchiveService {
       if (plan.blockers.length) throw new Error("Preview has blockers. Resolve them and create a new preview.");
       if (await this.exists(join(root, "openspec", plan.destination))) throw new Error("Archive destination appeared after preview. Nothing was written; preview again.");
       if (plan.date !== localDate()) throw new Error("Archive date changed. Create a new preview for the new destination.");
-      if (!same(current, plan.before) || plan.reviewRevision !== await this.reviews()) throw new Error("Workspace files or review comments changed since preview. Nothing was written; preview again.");
+      if (!same(current, plan.before) || plan.reviewGeneration !== await history.generation(plan.id) || plan.reviewRevision !== await this.reviews(current)) throw new Error("Workspace files or review comments changed since preview. Nothing was written; preview again.");
       if (!confirmation.dependenciesReviewed || !confirmation.specDiffsReviewed) throw new Error("Explicit dependency and exact spec-diff review confirmations are required.");
       if (plan.status.tasks.status === "unknown" && !confirmation.unknownTasksAcknowledged) throw new Error("Task status is unknown. Explicitly acknowledge this after reviewing the complete change.");
       const verification = confirmation.verification;
@@ -173,7 +199,12 @@ export class ArchiveService {
       try { diagnostic = await this.workspace.command(["archive", plan.id, "--json", "--yes"], true); }
       catch (error) { diagnostic = { error: String(error) }; }
       let after: FileEntry[];
-      try { after = await filesUnder(join(root, "openspec")); }
+      try {
+        after = await filesUnder(join(root, "openspec"));
+        if (!(await this.exists(join(root, "openspec/changes", plan.id))) && await this.exists(join(root, "openspec", plan.destination))) {
+          await history.bindArchive(plan.id, plan.destination.split("/").at(-1)!, plan.reviewGeneration);
+        }
+      }
       catch (error) {
         plan.outcome = { ...plan.outcome, inspectionError: String(error), diagnostic, remaining: ["Inspect the workspace: post-operation file inspection failed, so the mutation set is unknown."] };
         return await this.persistOutcome(plan);
@@ -216,12 +247,6 @@ export class ArchiveService {
     } catch (error) { return { ...this.outcomeSummary(plan), observed: { known: false, error: String(error) } }; }
   }
   async originalChange(archiveName: string) {
-    archivedChangeName(archiveName);
-    let names: string[];
-    try { names = await readdir(await this.directory()); } catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") return; throw error; }
-    for (const name of names.filter(name => /^[a-f0-9-]{36}\.json$/.test(name))) {
-      const plan = await this.load(name.slice(0, -5));
-      if (plan.destination === `changes/archive/${archiveName}` && plan.outcome?.outcome === "archived") return plan.id;
-    }
+    return new ReviewHistory(this.workspace, this.data).originalChange(archiveName);
   }
 }

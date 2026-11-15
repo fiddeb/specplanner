@@ -1,0 +1,38 @@
+{
+  "tokenizer": "tiktoken 0.12.0 / o200k_base",
+  "method": "Actual MCP response JSON from scripts/measure-planning.ts; default compact JSON serialization, UTF-8 text. No model invocations.",
+  "baseline": {
+    "specplanner": "0.4.1",
+    "openspec": "1.14.2",
+    "responseTokens": {
+      "board first read": 5379,
+      "board repeated": 186,
+      "instructions first": 3295,
+      "instructions other artifact": 4446,
+      "instructions repeated": 66,
+      "large review selection": 577,
+      "tool discovery": 5478
+    },
+    "skillTokens": 1074
+  },
+  "candidate": {
+    "specplanner": "0.5.0",
+    "openspec": "2.0.0",
+    "responseTokens": {
+      "board first read": 5384,
+      "board repeated": 201,
+      "instructions first": 3292,
+      "instructions other artifact": 4492,
+      "instructions repeated": 67,
+      "large review selection": 577,
+      "tool discovery": 5485
+    },
+    "skillTokens": 1152
+  },
+  "limitations": [
+    "Fixture counts, not billed tokens or total model cost.",
+    "Random revision hashes and temporary paths cause small token variations.",
+    "Four artifact instructions measured; new apply/archive operation payloads are correctness-tested but not benchmarked.",
+    "Official instructions and required project guidance are preserved; unchanged context and policy are omitted only with matching revisions."
+  ]
+}

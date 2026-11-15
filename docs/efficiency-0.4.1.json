@@ -1,0 +1,102 @@
+{
+  "encoding": "o200k_base",
+  "measurement": "Compact JSON of actual MCP requests and CallToolResult. Host framing, reasoning, prompt caching and billing excluded. Setup/app-only writes excluded.",
+  "runs": {
+    "before": {
+      "fixture": {
+        "elements": 101,
+        "repeatedBoardReads": 3,
+        "contextCharacters": 5439,
+        "artifacts": 4
+      },
+      "discoveryTokens": 5164,
+      "rows": {
+        "board first read": {
+          "calls": 1,
+          "requestTokens": 51,
+          "responseTokens": 5340,
+          "responseBytes": 17844
+        },
+        "board repeated": {
+          "calls": 3,
+          "requestTokens": 153,
+          "responseTokens": 16020,
+          "responseBytes": 53532
+        },
+        "instructions first": {
+          "calls": 1,
+          "requestTokens": 60,
+          "responseTokens": 2965,
+          "responseBytes": 14375
+        },
+        "instructions other artifact": {
+          "calls": 3,
+          "requestTokens": 316,
+          "responseTokens": 7191,
+          "responseBytes": 33582
+        },
+        "instructions repeated": {
+          "calls": 1,
+          "requestTokens": 101,
+          "responseTokens": 69,
+          "responseBytes": 202
+        },
+        "large review selection": {
+          "calls": 1,
+          "requestTokens": 69,
+          "responseTokens": 240380,
+          "responseBytes": 960964
+        }
+      }
+    },
+    "after": {
+      "fixture": {
+        "elements": 101,
+        "repeatedBoardReads": 3,
+        "contextCharacters": 5439,
+        "artifacts": 4
+      },
+      "discoveryTokens": 5478,
+      "rows": {
+        "board first read": {
+          "calls": 1,
+          "requestTokens": 51,
+          "responseTokens": 5387,
+          "responseBytes": 17945
+        },
+        "board repeated": {
+          "calls": 3,
+          "requestTokens": 282,
+          "responseTokens": 210,
+          "responseBytes": 570
+        },
+        "instructions first": {
+          "calls": 1,
+          "requestTokens": 60,
+          "responseTokens": 3292,
+          "responseBytes": 16197
+        },
+        "instructions other artifact": {
+          "calls": 3,
+          "requestTokens": 412,
+          "responseTokens": 4420,
+          "responseBytes": 17406
+        },
+        "instructions repeated": {
+          "calls": 1,
+          "requestTokens": 101,
+          "responseTokens": 69,
+          "responseBytes": 202
+        },
+        "large review selection": {
+          "calls": 1,
+          "requestTokens": 69,
+          "responseTokens": 582,
+          "responseBytes": 1666
+        }
+      }
+    }
+  },
+  "skillBodyTokens": 1066,
+  "baselineServerSha256": "7b64f4bccf9d07cbae1f7ffa752b4f2d02ca95a4735435cc1f0a144da88880a7"
+}

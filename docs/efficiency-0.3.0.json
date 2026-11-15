@@ -1,0 +1,77 @@
+{
+  "encoding": "o200k_base",
+  "measurement": "Compact JSON of actual MCP CallToolResult, including text and structured content. Host prompt framing and billing excluded.",
+  "runs": {
+    "before": {
+      "fixture": {
+        "documentCharacters": 160600,
+        "comments": 23,
+        "proposals": 5,
+        "elementsPerProposal": 101
+      },
+      "discoveryTokens": 4800,
+      "rows": {
+        "document": {
+          "calls": 4,
+          "requestTokens": 567,
+          "responseTokens": 50442,
+          "responseBytes": 240375,
+          "commentRecords": 63
+        },
+        "proposal": {
+          "calls": 5,
+          "requestTokens": 68005,
+          "responseTokens": 68013,
+          "responseBytes": 224800,
+          "commentRecords": 0
+        },
+        "list": {
+          "calls": 1,
+          "requestTokens": 49,
+          "responseTokens": 67923,
+          "responseBytes": 224382,
+          "commentRecords": 0
+        }
+      }
+    },
+    "after": {
+      "fixture": {
+        "documentCharacters": 160600,
+        "comments": 23,
+        "proposals": 5,
+        "elementsPerProposal": 101
+      },
+      "discoveryTokens": 5164,
+      "rows": {
+        "document": {
+          "calls": 4,
+          "requestTokens": 874,
+          "responseTokens": 38761,
+          "responseBytes": 193041,
+          "commentRecords": 23
+        },
+        "proposal": {
+          "calls": 5,
+          "requestTokens": 68010,
+          "responseTokens": 337,
+          "responseBytes": 1095,
+          "commentRecords": 0
+        },
+        "list": {
+          "calls": 1,
+          "requestTokens": 50,
+          "responseTokens": 296,
+          "responseBytes": 809,
+          "commentRecords": 0
+        },
+        "selected proposal": {
+          "calls": 1,
+          "requestTokens": 74,
+          "responseTokens": 13600,
+          "responseBytes": 44960,
+          "commentRecords": 0
+        }
+      }
+    }
+  }
+}

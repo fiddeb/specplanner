@@ -1,0 +1,9 @@
+interface:
+  display_name: "SpecPlanner"
+  short_description: "Plan changes with requirements, reasons and evidence"
+  default_prompt: "Use $specplanner to review this change's requirements, decisions, tasks and verification."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "specplanner"
+      description: "Bundled local SpecPlanner planning tools"

@@ -3,7 +3,7 @@ import { MarkdownDocument } from "./markdown-document.js";
 import React, { useEffect, useState, useRef } from "react";
 import type { ReviewComment } from "./document-store.js";
 import { locateReviewSelection } from "./review-selection.js";
-type Document = { path: string; content: string; revision: string; comments: ReviewComment[] };
+type Document = { path: string; content: string; revision: string; identity: string; comments: ReviewComment[] };
 type Call = (tool: string, args: Record<string, unknown>) => Promise<Record<string, unknown>>;
 export function DocumentEditor({ id, path, call, onDirty, locked = false }: { id: string; path: string; call: Call; onDirty: (path: string, dirty: boolean) => void; locked?: boolean }) {
   const readerRef = useRef<HTMLDivElement>(null);
@@ -57,14 +57,14 @@ export function DocumentEditor({ id, path, call, onDirty, locked = false }: { id
         onChange={event => { setDraft(event.target.value); setSelection({ start: 0, end: 0 }); setSelectionError(""); }}
         onSelect={event => setSelection({ start: event.currentTarget.selectionStart, end: event.currentTarget.selectionEnd })} /></label>}
       <div className="document-actions"><button disabled={busy || !dirty} onClick={() => void run(async () => {
-        const next = (await call("save_document", { id, path, expectedRevision: document.revision, content: draft })).result as Document;
+        const next = (await call("save_document", { id, path, expectedRevision: document.revision, expectedIdentity: document.identity, content: draft })).result as Document;
         setDocument(next); setDraft(next.content); setSelection({ start: 0, end: 0 });
       })}>Save document</button><button disabled={busy} onClick={() => { if (dirty) setConfirmReload(true); else void run(load); }}>Reload saved</button><span role="status">{dirty ? "Unsaved changes" : "Saved"}</span></div>
       {confirmReload && <div role="group" aria-label="Discard edits"><p>Discard your unsaved document edits?</p><button onClick={() => { setConfirmReload(false); void run(load); }}>Discard and reload</button><button onClick={() => setConfirmReload(false)}>Keep editing</button></div>}
       <details ref={reviewRef} className="document-review"><summary>Comments ({document.comments.length})</summary>
       {!editing && <p>Select text in the reader, then choose Comment on selection. For passages spanning Markdown formatting, use Edit / select text.</p>}
       <form onSubmit={event => { event.preventDefault(); void run(async () => {
-        const added = (await call("add_comment", { id, path, revision: document.revision, ...selection, text: comment })).result as ReviewComment;
+        const added = (await call("add_comment", { id, path, revision: document.revision, expectedIdentity: document.identity, ...selection, text: comment })).result as ReviewComment;
         setDocument({ ...document, comments: [...document.comments, added] }); setComment("");
       }); }}>
         <label>Review comment<textarea ref={commentRef} aria-label={`Comment on ${path}`} value={comment} disabled={busy} maxLength={10000} onChange={event => setComment(event.target.value)} /></label>

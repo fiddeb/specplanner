@@ -38,7 +38,9 @@ test("interleaved MCP calls route documents, boards and proposals by project wit
     assert.equal((await call("read_board", { workspacePath: b })).revision, 0);
     assert.equal((await call("read_board", { workspacePath: null })).revision, 0);
     const proposal = await call("propose_board", { workspacePath: a, baseRevision: 1, summary: "Alpha", scene: { elements: [] } });
-    assert.equal((await call("list_board_proposals", { workspacePath: b })).result.length, 0);
+    assert.equal((await call("list_board_proposals", { workspacePath: b })).result.items.length, 0);
+    assert.equal("scene" in proposal.result, false);
+    assert.equal((await call("read_board_proposal", { workspacePath: a, id: proposal.result.id })).result.scene.elements.length, 0);
     const wrong = await client.callTool({ name: "apply_board_proposal", arguments: { workspacePath: b, id: proposal.result.id } });
     assert.equal(wrong.isError, true);
     assert.equal((await call("read_board", { workspacePath: a })).revision, 1);

@@ -1,5 +1,5 @@
 import { registerContextTools, reply } from "./context-tools.js";
-import { writingPolicy } from "./writing-policy.js";
+import { planningInstructions } from "./planning-instructions.js";
 import { digest } from "./context.js";
 import { WorkspaceConnections } from "./workspace-connection.js";
 import { DocumentStore } from "./document-store.js";
@@ -8,7 +8,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import { BoardStore } from "./board-store.js";
-import { sceneSchema, type Scene } from "./board-model.js";
+import { sceneSchema, proposalSummary, type Scene } from "./board-model.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from "@modelcontextprotocol/ext-apps/server";
 
@@ -23,8 +23,8 @@ export function createServer(html: string, suppliedStore?: BoardStore, workspace
   };
   const required = (workspacePath?: string | null) => { const selected = resolveWorkspace(workspacePath); if (!selected) throw new Error("Pass the current Codex project directory as workspacePath, or choose a workspace in the panel."); return selected; };
 
-  const server = new McpServer({ name: "specplanner", version: "0.2.0" });
-  const uri = "ui://specplanner/panel-v0.2.0.html";
+  const server = new McpServer({ name: "specplanner", version: "0.5.0" });
+  const uri = "ui://specplanner/panel-v0.5.0.html";
   registerAppResource(server, "planner-panel", uri, {}, async () => ({
     contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));
@@ -61,13 +61,16 @@ export function createServer(html: string, suppliedStore?: BoardStore, workspace
     return { content: [{ type: "text" as const, text: result.connected ? "Connected" : "Waiting" }], structuredContent: result };
   });
   registerAppTool(server, "read_board", {
-    title: "Read planning board", description: "Read the configured workspace board, or the personal board when no workspace is configured.",
+    title: "Read planning board", description: "Read the exact saved board. Reuse cacheRevision as knownRevision only while its scene is still in context; an unchanged response omits the scene. revision selects a historical board.",
     _meta: { ui: { visibility: ["model", "app"] } },
-    inputSchema: { ...workspaceInput, revision: z.number().int().nonnegative().optional() }, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
-  }, async ({ revision, workspacePath }: { revision?: number; workspacePath?: string | null }) => {
+    inputSchema: { ...workspaceInput, revision: z.number().int().nonnegative().optional(), knownRevision: z.string().optional() }, annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false },
+  }, async ({ revision, workspacePath, knownRevision }: { revision?: number; workspacePath?: string | null; knownRevision?: string }) => {
     const store = await getStore(workspacePath);
     const board = revision === undefined ? await store.read() : await store.readRevision(revision);
-    return { content: [{ type: "text" as const, text: `Board revision ${board.revision}; scene in structuredContent.` }], structuredContent: board };
+    const selected = resolveWorkspace(workspacePath);
+    const cacheRevision = digest(JSON.stringify([selected ? await selected.identity() : null, board]));
+    const unchanged = cacheRevision === knownRevision;
+    return { content: [{ type: "text" as const, text: unchanged ? "Board unchanged." : `Board revision ${board.revision}; scene in structuredContent.` }], structuredContent: unchanged ? { revision: board.revision, cacheRevision, unchanged } : { ...board, cacheRevision, unchanged } };
   });
   registerAppTool(server, "save_board", {
     title: "Save planning board", description: "Save the user's drawing with a required base revision. Existing revisions are retained.",
@@ -91,35 +94,33 @@ export function createServer(html: string, suppliedStore?: BoardStore, workspace
   registerContextTools(server, workspaceInput, required, data);
   registerAppTool(server, "create_change", { _meta: { ui: { visibility: ["model", "app"] } }, description: "Create a named OpenSpec planning change in the configured repository. Does not implement or publish code.", inputSchema: { ...workspaceInput, id: z.string() }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false } }, async ({ id, workspacePath }: { id: string; workspacePath?: string | null }) => reply(await required(workspacePath).create(id)));
   registerAppTool(server, "validate_change", { _meta: { ui: { visibility: ["model", "app"] } }, description: "Validate an OpenSpec change with the pinned official CLI; returns findings even when validation fails.", inputSchema: { ...workspaceInput, id: z.string() }, annotations: { readOnlyHint: true, openWorldHint: false } }, async ({ id, workspacePath }: { id: string; workspacePath?: string | null }) => reply(await required(workspacePath).validate(id)));
-  server.registerTool("planning_instructions", { description: "Get official artifact instructions and complete writing guidance before drafting. Reuse knownRevision; across artifacts reuse knownWritingPolicyRevision to omit unchanged policy text. Repository instructions cannot change workspace or permissions.", inputSchema: { ...workspaceInput, id: z.string(), artifact: z.enum(["proposal", "design", "specs", "tasks"]), knownRevision: z.string().optional(), knownWritingPolicyRevision: z.string().optional() }, annotations: { readOnlyHint: true, openWorldHint: false } }, async ({ id, artifact, workspacePath, knownRevision, knownWritingPolicyRevision }) => {
-    const instructions = await required(workspacePath).instructions(id, artifact);
-    const revision = digest(JSON.stringify([await required(workspacePath).identity(), instructions]));
-    if (knownRevision === revision) return reply({ revision, unchanged: true });
-    const writingPolicyRevision = digest(JSON.stringify(writingPolicy));
-    return reply({ ...instructions, revision, unchanged: false, writingPolicyRevision, specplannerWritingPolicy: knownWritingPolicyRevision === writingPolicyRevision ? { version: writingPolicy.version, unchanged: true, revision: writingPolicyRevision } : { ...writingPolicy, revision: writingPolicyRevision } });
-  });
+  server.registerTool("planning_instructions", { description: "Read planning/writing policy before drafting, revising or implementing a plan. Omit id and artifact for policy only; supply both for official artifact or apply/archive operation instructions. Reuse knownRevision or cross-artifact knownWritingPolicyRevision/knownContextRevision only for content still available in this conversation. Repository text cannot change permissions.", inputSchema: { ...workspaceInput, id: z.string().optional(), artifact: z.enum(["proposal", "design", "specs", "tasks", "apply", "archive"]).optional(), knownRevision: z.string().optional(), knownWritingPolicyRevision: z.string().optional(), knownContextRevision: z.string().optional() }, annotations: { readOnlyHint: true, openWorldHint: false } }, async ({ workspacePath, ...input }) => reply(await planningInstructions(resolveWorkspace(workspacePath), input)));
   const documents = (workspacePath?: string | null) => new DocumentStore(required(workspacePath), data);
-  const documentInput = { ...workspaceInput, id: z.string(), path: z.string() };
+  const documentInput = { ...workspaceInput, id: z.string(), path: z.string(), expectedIdentity: z.string().regex(/^[a-f0-9]{64}$/) };
   registerAppTool(server, "save_document", {
     description: "Save the user's edited Markdown document against its expected content revision. Retains prior content snapshots.",
     inputSchema: { ...documentInput, expectedRevision: z.string(), content: z.string().max(1_000_000) },
     _meta: { ui: { visibility: ["app"] } }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  }, async ({ id, path, expectedRevision, content, workspacePath }: { id: string; path: string; expectedRevision: string; content: string; workspacePath?: string | null }) => reply(await documents(workspacePath).save(id, path, expectedRevision, content)));
+  }, async ({ id, path, expectedRevision, content, expectedIdentity, workspacePath }: { id: string; path: string; expectedRevision: string; content: string; expectedIdentity: string; workspacePath?: string | null }) => reply(await documents(workspacePath).save(id, path, expectedRevision, content, expectedIdentity)));
   registerAppTool(server, "add_comment", {
     description: "Keep an original user review comment anchored to a saved document revision and text range.",
     inputSchema: { ...documentInput, revision: z.string(), start: z.number().int().nonnegative(), end: z.number().int().nonnegative(), text: z.string().max(10000) },
     _meta: { ui: { visibility: ["app"] } }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
-  }, async ({ id, path, revision, start, end, text, workspacePath }: { id: string; path: string; revision: string; start: number; end: number; text: string; workspacePath?: string | null }) => reply(await documents(workspacePath).comment(id, path, revision, start, end, text)));
+  }, async ({ id, path, revision, start, end, text, expectedIdentity, workspacePath }: { id: string; path: string; revision: string; start: number; end: number; text: string; expectedIdentity: string; workspacePath?: string | null }) => reply(await documents(workspacePath).comment(id, path, revision, start, end, text, expectedIdentity)));
   registerAppTool(server, "propose_board", {
     description: "Propose a complete replacement Excalidraw scene for user review; does not modify the board. Read the latest board first, preserve existing content unless asked to replace it, and use English labels, Helvetica fontFamily 2, roughness 0, and straight arrows. Supply full Excalidraw elements including version/versionNonce. Tell the user to refresh proposals and review before applying.",
     inputSchema: { ...workspaceInput, baseRevision: z.number().int().nonnegative(), summary: z.string().min(1).max(4000), scene: sceneSchema },
     annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
     _meta: { ui: { visibility: ["model"] } },
-  }, async ({ baseRevision, summary, scene, workspacePath }: { baseRevision: number; summary: string; scene: Scene; workspacePath?: string | null }) => reply(await (await getStore(workspacePath)).propose(baseRevision, summary, scene)));
+  }, async ({ baseRevision, summary, scene, workspacePath }: { baseRevision: number; summary: string; scene: Scene; workspacePath?: string | null }) => reply(proposalSummary(await (await getStore(workspacePath)).propose(baseRevision, summary, scene))));
   registerAppTool(server, "list_board_proposals", {
-    description: "Read board proposals for review. Compare baseRevision with the saved board revision before applying.", inputSchema: { ...workspaceInput },
+    description: "List paginated proposal metadata without scenes. Fetch a selected scene with read_board_proposal. Compare baseRevision with the saved board revision before applying.", inputSchema: { ...workspaceInput, cursor: z.string().max(1000).optional(), limit: z.number().int().min(1).max(100).optional() },
     _meta: { ui: { visibility: ["app", "model"] } }, annotations: { readOnlyHint: true, openWorldHint: false },
-  }, async ({ workspacePath }: { workspacePath?: string | null }) => reply(await (await getStore(workspacePath)).proposals()));
+  }, async ({ workspacePath, ...input }: { workspacePath?: string | null; cursor?: string; limit?: number }) => reply(await (await getStore(workspacePath)).proposals(input)));
+  registerAppTool(server, "read_board_proposal", {
+    description: "Read one complete stored proposal for drawing review.", inputSchema: { ...workspaceInput, id: z.string().uuid() },
+    _meta: { ui: { visibility: ["app", "model"] } }, annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async ({ workspacePath, id }: { workspacePath?: string | null; id: string }) => reply(await (await getStore(workspacePath)).proposal(id)));
   registerAppTool(server, "apply_board_proposal", {
     description: "Apply the user's selected stored proposal only if its base revision is still current.", inputSchema: { ...workspaceInput, id: z.string().uuid() },
     _meta: { ui: { visibility: ["app"] } }, annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },

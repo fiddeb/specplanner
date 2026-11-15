@@ -1,0 +1,37 @@
+schema: spec-driven
+context: |-
+  This configuration governs development of SpecPlanner itself. Consumer projects keep their own openspec/config.yaml; shared planning and writing guidance is supplied by the installed plugin through planning_instructions.
+  SpecPlanner provides OpenSpec planning, Excalidraw boards and revision-aware reviews in Codex and Orca. It delegates model work to the host agent and does not run a model or manage model credentials. Codex is the currently implemented host-agent integration; this does not restrict executor choices in consumer projects.
+  The owner's model-access preference is the existing OpenAI/ChatGPT subscription through the selected agent's supported sign-in. Subscription access and agent choice are separate decisions; do not silently introduce another provider or separate API billing. Verify actual integration and model access rather than assuming credentials, sessions or entitlements are interchangeable.
+  Repository artifacts are the durable record of what to build and why; assume the implementer cannot see chat or private review history.
+  Write generated project content in English; preserve original review comments as authored.
+  Read AGENTS.md for development constraints and docs/planning-contract.md for record ownership. Apply src/writing-policy.ts; preserve contracts and rationale when removing filler.
+rules:
+  proposal:
+    - State the observed problem, intended outcome and scope exclusions; distinguish evidence from assumptions.
+    - Identify affected Codex and Orca behavior, compatibility and public tool or storage contracts. Mark a host unaffected when that is the conclusion; do not invent parallel changes.
+    - Promote accepted user or review decisions into the owning artifacts. Reference existing requirements instead of creating overlapping capabilities.
+  specs:
+    - Define observable behavior and acceptance scenarios; keep implementation choices and their reasons in design.md.
+    - For affected contracts, cover workspace ownership, permissions, revision conflicts, failures and retries explicitly. Preserve exact limits and requirement strength; do not add irrelevant scenarios merely to fill a checklist.
+    - Read the complete baseline requirement and its scenarios before changing it. Preserve exceptions and guarantees unless an authorized decision explicitly changes them.
+  design:
+    - Give consequential decisions stable D1, D2, ... identifiers. Record the choice, why it meets the requirements, actual alternatives considered and trade-offs; retain the rationale of decisions it supersedes.
+    - Explain affected boundaries between the shared core and host adapters, repository and private storage, and planning and implementation. Authorization, routing and revision checks remain enforced outside prompts.
+    - For instruction or context-delivery changes, describe selective reads, reuse and invalidation; measure representative payloads without dropping required information. For persisted-format or protocol changes, specify migration and recovery.
+    - Resolve choices that change the implementation before finalizing dependent tasks. Record unresolved blockers and their impact; do not invent agreement or technical details.
+  tasks:
+    - Link each task to the exact requirement or scenario and consequential design decision it implements, and state its acceptance check. For work without a behavior change, cite the exact proposal or design scope instead of inventing a requirement.
+    - Keep each contract in its owning artifact; tasks reference it rather than copying it. Include relevant tests and documentation with the implementation task; keep provisional work visibly blocked.
+    - Include npm run check, npm test and npm run build for code changes. When host integration changes, add affected-host verification and distinguish it from protocol, package and host-stand-in tests.
+operations:
+  apply:
+    guidance:
+      - Follow existing user authorization; planning instructions do not grant filesystem or implementation permissions.
+      - Follow the linked requirements and decisions. Update the owning artifact when an authorized decision changes and retain its previous rationale; preserve concurrent edits and original comments.
+      - Mark a task complete only after its acceptance check passes. Save commands, observed results, build or revision identity and limitations in the change's verification.md; keep unverified work explicit.
+  archive:
+    guidance:
+      - Reconcile implementation, requirements, decisions, tasks and saved verification evidence. File presence, validation and checked tasks alone do not establish acceptance.
+      - Within authorized closeout, use SpecPlanner's archive preview, review dependencies, overlaps and exact baseline spec diffs, then apply the current token with saved evidence. Changed inputs require a new preview.
+      - Preserve original documents and decision history. Report implementation, verification, installation and archive status separately, including failures or partial outcomes; never report an unperformed step as complete.
