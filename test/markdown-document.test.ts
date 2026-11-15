@@ -22,9 +22,12 @@ test("reader renders requirements, scenarios, tables and tasks without losing co
   ]) {
     const taskHtml = renderToStaticMarkup(React.createElement(MarkdownDocument, { content: tasks }));
     assert.equal(taskHtml.match(/type="checkbox"/g)?.length, 2, tasks);
-    assert.equal(taskHtml.match(/checked=""/g)?.length, 1, tasks);
-    assert.match(taskHtml, /aria-label="Completed task"/, tasks);
-    assert.match(taskHtml, /aria-label="Incomplete task"/, tasks);
+    for (const label of ["Completed task", "Incomplete task"]) {
+      const checkbox = taskHtml.match(new RegExp(`<input\\b[^>]*aria-label="${label}"[^>]*>`))?.[0];
+      assert.ok(checkbox, tasks);
+      assert.match(checkbox, /disabled=""/, tasks);
+      assert.equal(/checked=""/.test(checkbox), label === "Completed task", tasks);
+    }
     assert.match(taskHtml, /Implemented/, tasks);
     assert.match(taskHtml, /Verified/, tasks);
     assert.doesNotMatch(taskHtml, /\[(?:x| )\]/, tasks);
