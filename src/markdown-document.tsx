@@ -19,9 +19,13 @@ function nodes(tokens: Token[]): React.ReactNode {
       case "br": return <br key={index} />;
       case "hr": return <hr key={index} />;
       case "blockquote": return <blockquote key={index}>{children}</blockquote>;
+      case "checkbox": {
+        const { checked } = token as Tokens.Checkbox;
+        return <input key={index} type="checkbox" checked={checked} disabled aria-label={checked ? "Completed task" : "Incomplete task"} />;
+      }
       case "list": {
         const list = token as Tokens.List;
-        const items = list.items.map((item, i) => <li key={i}>{item.task && <input type="checkbox" checked={!!item.checked} disabled aria-label={item.checked ? "Completed task" : "Incomplete task"} />}{nodes(item.tokens)}</li>);
+        const items = list.items.map((item, i) => <li key={i}>{nodes(item.tokens)}</li>);
         return list.ordered ? <ol key={index} start={Number(list.start) || 1}>{items}</ol> : <ul key={index}>{items}</ul>;
       }
       case "table": {
