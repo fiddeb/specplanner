@@ -1,6 +1,6 @@
 # Validation of SpecPlanner 0.2.0
 
-Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.1 verification](../validation-0.5.1.md).
 
 Validated locally on 2026-11-01 using Node.js 26.10.0 and the pinned official OpenSpec CLI 1.14.2. Node.js 22 remains the declared runtime minimum; this run did not separately execute on Node.js 22.
 

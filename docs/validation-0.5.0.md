@@ -1,6 +1,8 @@
 # SpecPlanner 0.5.0 verification
 
-## Current status, 2026-11-15
+Historical upgrade and closeout evidence. See [0.5.1 verification](validation-0.5.1.md) for the external pilot, current dependency corrections and CI/installation results.
+
+## Closeout assessment, 2026-11-15
 
 The OpenSpec 2 upgrade is committed on `main` at `f8024cbea746d0602bdf2ad568b84222671a2c57` and archived under `openspec/changes/archive/2026-11-15-upgrade-openspec-2/`. Its four requirements are now the baseline at `openspec/specs/planning-integration/spec.md`, which passed strict validation after archiving. No active changes remain at this assessment.
 

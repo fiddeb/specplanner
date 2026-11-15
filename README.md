@@ -91,6 +91,8 @@ Restart the host if needed to discover newly installed tools. Ask Codex to call 
 
 For source development, the repository's marketplace instead points to `releases/specplanner-0.5.1/`; build it before registering the repository directory as a marketplace. Register the source checkout or the extracted release, according to which copy you intend to use.
 
+If `specplanner-local` is already registered from another directory, run `codex plugin marketplace remove specplanner-local --json` before adding the chosen directory. This changes the marketplace registration; repository planning files and private boards/reviews remain in their existing locations.
+
 References: [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins), [local MCP configuration](https://developers.openai.com/plugins/deploy/desktop-only), [Orca plugin authoring](https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md).
 
 ## Planning and review

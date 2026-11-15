@@ -1,6 +1,6 @@
 # Context measurements: 0.1.8 and 0.2.0
 
-Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.0 verification](../validation-0.5.0.md).
+Historical evidence for the named release. For current setup, support and verification, see [README](../../README.md) and [0.5.1 verification](../validation-0.5.1.md).
 
 Measurements count actual UTF-8 bytes in JSON-serialized MCP call results, including content and structuredContent. They are response-size measurements, not token counts or universal model-context savings. Host serialization and tokenization can differ. Requests, transport headers, browser rendering and implementation execution are excluded. Tool discovery is reported separately.
 

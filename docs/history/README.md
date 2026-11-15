@@ -1,6 +1,6 @@
 # Verification history
 
-These records describe the versions and checks named in each report. Their test counts, dependency findings, installation commands and unfinished work are historical. Use the [current README](../../README.md) for setup and [0.5.0 verification](../validation-0.5.0.md) for current evidence and limitations.
+These records describe the versions and checks named in each report. Their test counts, dependency findings, installation commands and unfinished work are historical. Use the [current README](../../README.md) for setup and [0.5.1 verification](../validation-0.5.1.md) for current evidence and limitations.
 
 | Record | Retained evidence |
 | --- | --- |
