@@ -18,7 +18,20 @@ One repository and one versioned package contain both integrations. Codex is the
 
 The native Orca panel does not register MCP tools for an agent. Orca currently reserves plugin `mcpServers` contributions; configure the included MCP server separately. There is no documented native API for sending to structured chats, so the Orca panel offers explicit copying.
 
-## Build and verify
+## Download the pilot release
+
+Download `specplanner-0.5.1.tar.gz` and `SHA256SUMS` from [GitHub Releases](https://github.com/fiddeb/specplanner/releases/tag/v0.5.1). Use the built archive; GitHub's automatic source archives do not contain the compiled plugin.
+
+On macOS:
+
+```sh
+shasum -a 256 -c SHA256SUMS
+tar -xzf specplanner-0.5.1.tar.gz
+```
+
+On Linux, use `sha256sum -c SHA256SUMS`. The extracted directory contains both host integrations, a local Codex marketplace, runtime dependencies, license notices and `build-info.json` with the source commit. A supported Node.js installation is required; no npm install or build is needed in this directory. macOS Orca is the initial pilot host; protocol/CI checks on Linux do not establish native Linux host support.
+
+## Build and verify from source
 
 Use Node.js 22.13+ in the 22.x line, or Node.js 24+.
 
@@ -31,22 +44,22 @@ npm run verify:package
 
 `check` type-checks source, scripts and npm tests, and rejects unused declarations, implicit missing returns, missing override markers, switch fallthrough, unresolved side-effect imports, unreachable code and unused labels. The project has no separate linter.
 
-`verify:package` builds `releases/specplanner-0.5.0/`, then tests the shipped files from an isolated directory with spaces in its name. The package includes both host manifests, the panel assets, both server entrypoints, the official OpenSpec runtime, and third-party license notices. No npm install is needed inside the release directory.
+`verify:package` builds `releases/specplanner-0.5.1/`, then tests the shipped files from an isolated directory with spaces in its name. `build-info.json` identifies the source commit and whether the checkout was dirty. After committing the release sources, rebuild/verify and run `npm run release:archive` to create the tarball and `SHA256SUMS`; it refuses a dirty or stale package. CI runs the checks on Node 22.13, 24 and 26 and retains an archive from each job.
 
-With Orca installed, also run `orca plugin test releases/specplanner-0.5.0 --json` and `orca plugin check releases/specplanner-0.5.0 --json`. Use the packaged directory for Orca's test runner; use `npm test` for npm source tests.
+With Orca installed, also run `orca plugin test releases/specplanner-0.5.1 --json` and `orca plugin check releases/specplanner-0.5.1 --json`. Use the packaged directory for Orca's test runner; use `npm test` for npm source tests.
 
-Native Orca 1.4.259 has recorded checks for panel rendering, proposal review/application, document editing, comments, OpenSpec execution and worker restart recovery. Those checks identify specific installed builds; the latest local maintenance build has only protocol and package verification. Codex desktop conversation-panel placement remains unverified.
+Native Orca checks and their exact build identities are recorded separately from protocol/package tests. Codex desktop conversation-panel placement remains unverified.
 
-Protocol and package tests are distinct from host integration. They cover real MCP stdio and the shipped Orca worker against a host stand-in, including shared storage and cross-host revision conflicts. See [the 0.5 verification record](docs/validation-0.5.0.md) for actual-host results and limitations.
+Protocol and package tests cover real MCP stdio and the shipped Orca worker against a host stand-in, including shared storage and cross-host revision conflicts. See [0.5.1 verification](docs/validation-0.5.1.md) for release evidence and limitations.
 
 ## Use with Orca
 
-Requires Orca **1.4.246 or later**. Build the release first, then install it once for your Orca host:
+Requires Orca **1.4.246 or later**. Download and extract the release above, then use its absolute directory:
 
 ```sh
-orca plugin validate /absolute/path/to/specplanner/releases/specplanner-0.5.0 --json
-orca plugin inspect /absolute/path/to/specplanner/releases/specplanner-0.5.0 --json
-orca plugin install /absolute/path/to/specplanner/releases/specplanner-0.5.0 --json
+orca plugin validate /absolute/path/to/specplanner-0.5.1 --json
+orca plugin inspect /absolute/path/to/specplanner-0.5.1 --json
+orca plugin install /absolute/path/to/specplanner-0.5.1 --json
 orca plugin open local.specplanner --panel planner --json
 ```
 
@@ -59,22 +72,24 @@ Select a local Git repository in Orca before opening the panel. It binds to that
 Configure Codex's MCP connection to launch:
 
 ```text
-node /absolute/path/to/specplanner/releases/specplanner-0.5.0/dist/server.js
+node /absolute/path/to/specplanner-0.5.1/dist/server.js
 ```
 
 Install the same package as a Codex plugin below to make both the MCP tools and planning skill available to the agent. A native Orca install alone registers neither agent tools nor skills. If you configure MCP manually instead, also load `skills/specplanner/SKILL.md` from the release in your agent's skill loader, or explicitly ask the agent to read that file for the task. Pass the current chat's trusted absolute directory as `workspacePath` on every SpecPlanner tool call. Both connections must use the same local account and data directory to share boards and reviews.
 
 ## Use with Codex
 
-The release includes `plugin.json` and `mcp.json`. The repository marketplace points to the built release. With a Codex CLI supporting plugin marketplaces:
+The extracted release includes `plugin.json`, `mcp.json` and a marketplace that points to that same directory. With a Codex CLI supporting plugin marketplaces:
 
 ```sh
-codex plugin marketplace add /absolute/path/to/specplanner --json
+codex plugin marketplace add /absolute/path/to/specplanner-0.5.1 --json
 codex plugin add specplanner@specplanner-local --json
 codex plugin list --marketplace specplanner-local --json
 ```
 
 Restart the host if needed to discover newly installed tools. Ask Codex to call `open_planner` with this chat's project directory as `workspacePath`. Any MCP client can use `dist/server.js`; interactive rendering additionally requires MCP Apps support. A successful CLI installation or tool call does not establish conversation-panel support.
+
+For source development, the repository's marketplace instead points to `releases/specplanner-0.5.1/`; build it before registering the repository directory as a marketplace. Register the source checkout or the extracted release, according to which copy you intend to use.
 
 References: [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins), [local MCP configuration](https://developers.openai.com/plugins/deploy/desktop-only), [Orca plugin authoring](https://github.com/stablyai/orca/blob/main/docs/reference/plugin-authoring.md).
 
@@ -111,4 +126,4 @@ The [0.5 upgrade comparison](docs/efficiency-0.5.0.json) records the OpenSpec 2 
 
 MIT for SpecPlanner's own code. Packages include third-party notices and retained license texts. Excalidraw **0.18.1** and OpenSpec **2.0.0** are pinned official packages. Updates require compatibility review and testing; no automatic merging or publishing is configured. CI is configured for Node 22.13, 24, and 26; weekly Dependabot checks take effect when hosted on GitHub. Local checks do not establish that remote jobs ran.
 
-The [verification record](docs/validation-0.5.0.md) distinguishes local builds, installed-host evidence, dated dependency findings and remaining limitations. No public release has been published.
+The [verification record](docs/validation-0.5.1.md) distinguishes local builds, CI, installed-host evidence, dependency checks and remaining limitations. Report bugs through [GitHub Issues](https://github.com/fiddeb/specplanner/issues); use the [security policy](SECURITY.md) for vulnerability reports.

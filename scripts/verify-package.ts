@@ -16,6 +16,14 @@ const client = new Client({ name: "specplanner-install-test", version: "1.0.0" }
 try {
   if (!existingInstallation) await cp(new URL(`releases/specplanner-${manifest.version}/`, root), installed, { recursive: true });
   const installedManifest = JSON.parse(await readFile(join(installed, "plugin.json"), "utf8"));
+  const provenance = JSON.parse(await readFile(join(installed, "build-info.json"), "utf8"));
+  assert.equal(provenance.version, installedManifest.version);
+  assert.match(provenance.sourceCommit, /^[a-f0-9]{40}$/);
+  assert.equal(typeof provenance.sourceDirty, "boolean");
+  const marketplace = JSON.parse(await readFile(join(installed, ".agents/plugins/marketplace.json"), "utf8"));
+  assert.equal(marketplace.plugins.length, 1);
+  assert.equal(marketplace.plugins[0].name, installedManifest.name);
+  assert.deepEqual(marketplace.plugins[0].source, { source: "local", path: "." });
   assert.equal(installedManifest.skills, "./skills/");
   const skillDirectory = join(installed, installedManifest.skills, "specplanner");
   const skill = await readFile(join(skillDirectory, "SKILL.md"), "utf8");

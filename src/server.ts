@@ -1,4 +1,5 @@
 import { registerContextTools, reply } from "./context-tools.js";
+import { version } from "./version.js";
 import { planningInstructions } from "./planning-instructions.js";
 import { digest } from "./context.js";
 import { WorkspaceConnections } from "./workspace-connection.js";
@@ -23,8 +24,8 @@ export function createServer(html: string, suppliedStore?: BoardStore, workspace
   };
   const required = (workspacePath?: string | null) => { const selected = resolveWorkspace(workspacePath); if (!selected) throw new Error("Pass the current Codex project directory as workspacePath, or choose a workspace in the panel."); return selected; };
 
-  const server = new McpServer({ name: "specplanner", version: "0.5.0" });
-  const uri = "ui://specplanner/panel-v0.5.0.html";
+  const server = new McpServer({ name: "specplanner", version });
+  const uri = `ui://specplanner/panel-v${version}.html`;
   registerAppResource(server, "planner-panel", uri, {}, async () => ({
     contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: html }],
   }));

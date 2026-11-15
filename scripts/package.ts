@@ -1,5 +1,7 @@
 import { cp, mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, relative, join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 
 import { fileURLToPath } from "node:url";
 import { writeThirdPartyNotices } from "./licenses.js";
@@ -8,6 +10,9 @@ const root = new URL("../", import.meta.url);
 const manifest = JSON.parse(await readFile(new URL("plugin.json", root), "utf8"));
 const pkg = JSON.parse(await readFile(new URL("package.json", root), "utf8"));
 const orca = JSON.parse(await readFile(new URL("orca-plugin.json", root), "utf8"));
+const git = async (args: string[]) => (await promisify(execFile)("git", args, { cwd: fileURLToPath(root) })).stdout.trim();
+const sourceCommit = await git(["rev-parse", "HEAD"]);
+const sourceDirty = (await git(["status", "--porcelain", "--untracked-files=normal"])).length > 0;
 if (!/^\d+\.\d+\.\d+$/.test(manifest.version)) throw new Error("Invalid release version");
 if (manifest.version !== pkg.version) throw new Error("Package and plugin versions must match");
 if (orca.version !== pkg.version) throw new Error("Orca and Codex plugin versions must match");
@@ -16,9 +21,15 @@ await mkdir(releases, { recursive: true });
 const staging = await mkdtemp(new URL(".staging-", releases).pathname);
 const target = new URL(`specplanner-${manifest.version}/`, releases);
 try {
-  for (const name of ["plugin.json", "mcp.json", "orca-plugin.json", "README.md", "LICENSE"]) {
+  for (const name of ["plugin.json", "mcp.json", "orca-plugin.json", "README.md", "SECURITY.md", "LICENSE"]) {
     await cp(new URL(name, root), join(staging, name));
   }
+  const marketplace = JSON.parse(await readFile(new URL(".agents/plugins/marketplace.json", root), "utf8"));
+  marketplace.plugins = marketplace.plugins.filter((plugin: { name: string }) => plugin.name === pkg.name);
+  if (marketplace.plugins.length !== 1) throw new Error("Expected one SpecPlanner marketplace entry");
+  marketplace.plugins[0].source = { source: "local", path: "." };
+  await mkdir(join(staging, ".agents/plugins"), { recursive: true });
+  await writeFile(join(staging, ".agents/plugins/marketplace.json"), JSON.stringify(marketplace, null, 2) + "\n");
   await cp(new URL("docs/", root), join(staging, "docs"), { recursive: true });
   await cp(new URL("skills/", root), join(staging, "skills"), { recursive: true });
   await cp(new URL("orca-tests/", root), join(staging, "orca-tests"), { recursive: true });
@@ -52,6 +63,7 @@ try {
   await copyDependency("@fission-ai/openspec", fileURLToPath(root));
   await writeThirdPartyNotices(fileURLToPath(root), staging, copied);
   await writeFile(join(staging, "package.json"), JSON.stringify({ name: "specplanner", version: manifest.version, private: true, type: "module", license: pkg.license, engines: pkg.engines }, null, 2));
+  await writeFile(join(staging, "build-info.json"), JSON.stringify({ version: pkg.version, sourceCommit, sourceDirty }, null, 2) + "\n");
   const entries = await readdir(staging, { recursive: true });
   let bytes = 0;
   for (const entry of entries) {

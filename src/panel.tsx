@@ -1,4 +1,5 @@
 import { bindWorkspace } from "./panel-client.js";
+import { version } from "./version.js";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { App, applyDocumentTheme, applyHostStyleVariables, applyHostFonts } from "@modelcontextprotocol/ext-apps";
@@ -74,7 +75,7 @@ function Planner() {
       setStatus("Preview only · Open through an MCP host to connect");
       return;
     }
-    const app = new App({ name: "SpecPlanner", version: "0.5.0" }, {}, { autoResize: false });
+    const app = new App({ name: "SpecPlanner", version }, {}, { autoResize: false });
     const syncTheme = (ctx: ReturnType<App["getHostContext"]>) => {
       if (ctx?.theme) { applyDocumentTheme(ctx.theme); setTheme(ctx.theme); }
       if (ctx?.styles?.variables) applyHostStyleVariables(ctx.styles.variables);
@@ -82,14 +83,14 @@ function Planner() {
     };
     app.onhostcontextchanged = () => syncTheme(app.getHostContext());
     app.ontoolresult = result => {
-      setStatus("Connected to the agent · v0.5.0");
+      setStatus(`Connected to the agent · v${version}`);
       const info = result.structuredContent as { workspacePath?: unknown; connectionRequestId?: string } | undefined;
       if (!initialized.current && info?.connectionRequestId) { setConnectionRequestId(info.connectionRequestId); return; }
       if (!initialized.current && info && (typeof info.workspacePath === "string" || info.workspacePath === null)) {
         initialized.current = true; setWorkspacePath(info.workspacePath as string | null);
       }
     };
-    app.connect().then(() => { syncTheme(app.getHostContext()); setConnection(app); setStatus("Connected to the host · v0.5.0");  }).catch(() => setStatus("No MCP host connected"));
+    app.connect().then(() => { syncTheme(app.getHostContext()); setConnection(app); setStatus(`Connected to the host · v${version}`);  }).catch(() => setStatus("No MCP host connected"));
     return () => { void app.close(); };
   }, []);
   return <PlannerShell app={scoped} workspacePath={workspacePath} theme={theme} status={status} preview={window.parent === window}>
