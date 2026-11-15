@@ -1,6 +1,6 @@
 # SpecPlanner 0.5.0 verification
 
-Historical upgrade and closeout evidence. See [0.5.1 verification](validation-0.5.1.md) for the external pilot, current dependency corrections and CI/installation results.
+Historical upgrade and closeout evidence. See [0.5.1 verification](validation-0.5.1.md) for the release, current dependency corrections and CI/installation results.
 
 ## Closeout assessment, 2026-11-15
 

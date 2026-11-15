@@ -1,14 +1,14 @@
-# SpecPlanner 0.5.1 pilot verification
+# SpecPlanner 0.5.1 verification
 
 ## Scope
 
-This patch prepares the existing Codex/MCP and native Orca package for a limited external pilot. It includes the previously verified panel-connection validation, stricter static checks and documentation cleanup. Official Excalidraw 0.18.1 and OpenSpec 2.0.0 remain pinned. No model runtime, credential handling or new host integration is introduced.
+This patch packages the existing Codex/MCP and native Orca integrations for external distribution. It includes the previously verified panel-connection validation, stricter static checks and documentation cleanup. Official Excalidraw 0.18.1 and OpenSpec 2.0.0 remain pinned. No model runtime, credential handling or new host integration is introduced.
 
 Version strings in the server, worker and panels now come from `package.json`. The package includes its source commit and dirty-checkout status in `build-info.json`. Release archiving refuses uncommitted sources or a package from another commit. The downloadable archive contains its own Codex marketplace with a local `.` source, so installation does not require building the source repository. CI retains the archive and SHA-256 checksums for each supported Node version.
 
 ## Dependency corrections
 
-The pre-release `npm audit` reported eight affected package entries: two high, four moderate and two low, including parent entries. These were dependency advisories, not eight demonstrated SpecPlanner vulnerabilities. Exact overrides now select:
+The `npm audit` before publication reported eight affected package entries: two high, four moderate and two low, including parent entries. These were dependency advisories, not eight demonstrated SpecPlanner vulnerabilities. Exact overrides now select:
 
 | Package | Before | Selected version | Reason |
 | --- | --- | --- | --- |
@@ -36,10 +36,10 @@ A clean extraction of the local archive into a separate directory containing spa
 
 The same extracted archive installed in Orca as a standard non-development plugin. After removing the development load and approving the standard installation, its panel connected to the original project, displayed saved board revision 0 and version 0.5.1, and rendered without capture errors. Existing project data was retained. The source move from a development/release directory to an extracted archive requires Orca's normal approval, even when the requested capabilities are unchanged.
 
-The public distribution is a GitHub pilot prerelease with a built tarball and checksums. GitHub's automatic source archives omit compiled assets and are not the installable package. Private vulnerability reporting is enabled on the repository. Publication and fresh installation do not establish Codex desktop panel placement or another person's machine; those remain outside the evidence above.
+The public distribution is a GitHub release with a built tarball and checksums. GitHub's automatic source archives omit compiled assets and are not the installable package. Private vulnerability reporting is enabled on the repository. Publication and fresh installation do not establish Codex desktop panel placement or another person's machine; those remain outside the evidence above.
 
 ## Limits
 
-The initial pilot targets local macOS repositories in Orca. Codex MCP protocol and skill discovery can be verified independently; Codex desktop conversation-panel placement remains unverified. Remote Orca repositories are unsupported. Light-theme rendering has not been established by earlier checks. Manual reconciliation can be needed after external filesystem races or interrupted archive identity binding. Keep repositories and private SpecPlanner data together in backups; see [storage and recovery](closeout-and-context.md).
+The verified native-host environment is Orca on macOS with local repositories. Codex MCP protocol and skill discovery can be verified independently; Codex desktop conversation-panel placement remains unverified. Remote Orca repositories are unsupported. Light-theme rendering has not been established by earlier checks. Manual reconciliation can be needed after external filesystem races or interrupted archive identity binding. Keep repositories and private SpecPlanner data together in backups; see [storage and recovery](closeout-and-context.md).
 
-Earlier upgrade, migration and host evidence remains in [0.5.0 verification](validation-0.5.0.md) and [verification history](history/README.md). Historical evidence does not automatically extend to this pilot build.
+Earlier upgrade, migration and host evidence remains in [0.5.0 verification](validation-0.5.0.md) and [verification history](history/README.md). Historical evidence does not automatically extend to this build.
