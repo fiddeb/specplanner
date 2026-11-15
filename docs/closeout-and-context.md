@@ -47,6 +47,8 @@ Original review text, language, quotes, UTF-16 offsets, revisions and snapshots 
 
 ## Context contracts
 
+MCP discovery describes each input parameter's meaning, origin and continuation rules. Document readers publish output schemas for `structuredContent.result`; board and connection tools with output schemas return their data directly unless the schema declares a `result` wrapper. These schemas validate successful MCP responses. The descriptions identify tool-selection boundaries, panel-only operations and conflict recovery without granting additional permissions.
+
 | Tool | Default | Explicit detail |
 | --- | --- | --- |
 | `workspace_info` | Identity and counts; inventories omitted | Listing tools; `knownRevision` checks this summary, not document bodies |

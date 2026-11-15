@@ -18,7 +18,7 @@ One repository and one versioned package contain both integrations. Codex is the
 
 The native Orca panel does not register MCP tools for an agent. Orca currently reserves plugin `mcpServers` contributions; configure the included MCP server separately. There is no documented native API for sending to structured chats, so the Orca panel offers explicit copying.
 
-## Download the pilot release
+## Download the release
 
 Download `specplanner-0.5.1.tar.gz` and `SHA256SUMS` from [GitHub Releases](https://github.com/fiddeb/specplanner/releases/tag/v0.5.1). Use the built archive; GitHub's automatic source archives do not contain the compiled plugin.
 
@@ -29,7 +29,7 @@ shasum -a 256 -c SHA256SUMS
 tar -xzf specplanner-0.5.1.tar.gz
 ```
 
-On Linux, use `sha256sum -c SHA256SUMS`. The extracted directory contains both host integrations, a local Codex marketplace, runtime dependencies, license notices and `build-info.json` with the source commit. A supported Node.js installation is required; no npm install or build is needed in this directory. macOS Orca is the initial pilot host; protocol/CI checks on Linux do not establish native Linux host support.
+On Linux, use `sha256sum -c SHA256SUMS`. The extracted directory contains both host integrations, a local Codex marketplace, runtime dependencies, license notices and `build-info.json` with the source commit. A supported Node.js installation is required; no npm install or build is needed in this directory. Orca on macOS is the verified native host; protocol/CI checks on Linux do not establish native Linux host support.
 
 ## Build and verify from source
 
