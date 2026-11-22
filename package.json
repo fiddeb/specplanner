@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@excalidraw/excalidraw": "0.18.1",
-    "@fission-ai/openspec": "2.0.0",
+    "@fission-ai/openspec": "2.1.0",
     "@modelcontextprotocol/ext-apps": "2.0.4",
     "@modelcontextprotocol/sdk": "1.32.2",
     "marked": "18.2.0",
